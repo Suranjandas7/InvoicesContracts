@@ -1,0 +1,198 @@
+{# Contracts CRUD JavaScript #}
+<script>
+// ── Contracts ─────────────────────────────────────────────────────────────────
+async function contractList() {
+    const res = await api('GET', '/admin/contracts');
+    const el = document.getElementById('ct-table');
+    if (!res.ok) {
+        el.innerHTML = '<p class="empty-msg">Failed to load contracts</p>';
+        return;
+    }
+    const data = res.data;
+    if (!data || !data.length) { 
+        el.innerHTML = '<p class="empty-msg">No contracts found. Create your first contract above.</p>';
+        return; 
+    }
+    
+    // Get customer names
+    const customerMap = {};
+    customersCache.forEach(c => customerMap[c.id] = c.name);
+    
+    el.innerHTML = `<table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th><th>Customer</th><th>Type</th><th>Title</th><th>Status</th><th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        ${data.map(r => {
+            const customerName = customerMap[r.customer_id] || 'Unknown';
+            return `<tr>
+                <td><code>${r.id ? r.id.substring(0, 8) + '...' : '-'}</code></td>
+                <td>${customerName}</td>
+                <td>${r.contract_type}</td>
+                <td>${r.title.substring(0, 50)}${r.title.length > 50 ? '...' : ''}</td>
+                <td>${getStatusBadge(r.status)}</td>
+                <td class="actions-row">
+                    <button class="btn btn-info btn-sm" onclick="copySigningLink('${r.id}')">Copy Link</button>
+                    <button class="btn btn-primary btn-sm" onclick="fillContractUpdate('${r.id}')">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="quickDelete('admin/contracts', '${r.id}', contractList)">Delete</button>
+                </td>
+            </tr>`;
+        }).join('')}
+        </tbody>
+    </table>`;
+}
+
+async function copySigningLink(contractId) {
+    try {
+        const res = await api('GET', `/admin/contracts/${contractId}`);
+        if (!res.ok || !res.data) {
+            alert('Error: Could not retrieve contract details');
+            return;
+        }
+        const contract = res.data;
+        if (!contract || !contract.customer_id) {
+            alert('Error: Contract missing customer information');
+            return;
+        }
+        const link = `${window.location.origin}/contracts/sign/${contractId}?customer_uuid=${contract.customer_id}`;
+        await navigator.clipboard.writeText(link);
+        alert('Signing link copied to clipboard!\n\nThe link includes the customer UUID for easy one-click access.');
+    } catch (err) {
+        const basicLink = `${window.location.origin}/contracts/sign/${contractId}`;
+        prompt('Copy this signing link:', basicLink);
+    }
+}
+
+async function fillContractUpdate(id) {
+    const res = await api('GET', `/admin/contracts/${id}`);
+    if (!res.ok || !res.data) {
+        showAlert('ct-upd-result', 'error', 'Failed to load contract data');
+        return;
+    }
+    const r = res.data;
+    
+    document.getElementById('ct-upd-id').value = r.id || '';
+    document.getElementById('ct-upd-customer').value = r.customer_id || '';
+    document.getElementById('ct-upd-type').value = r.contract_type || '';
+    document.getElementById('ct-upd-title').value = r.title || '';
+    document.getElementById('ct-upd-content').value = r.content || '';
+    document.getElementById('ct-upd-status').value = r.status || 'pending';
+    document.getElementById('ct-upd-expires').value = r.expires_at ? r.expires_at.substring(0, 16) : '';
+    
+    switchTab('contracts');
+    document.getElementById('ct-upd-id').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showAlert('ct-upd-result', 'info', 'Contract loaded. Make your changes and click Update.');
+}
+
+async function contractCreate() {
+    const expiresAt = document.getElementById('ct-expires').value;
+    const res = await api('POST', '/admin/contracts', {
+        customer_id: document.getElementById('ct-customer').value,
+        contract_type: document.getElementById('ct-type').value.trim(),
+        title: document.getElementById('ct-title').value.trim(),
+        content: document.getElementById('ct-content').value.trim(),
+        expires_at: expiresAt ? expiresAt + ':00Z' : null,
+        created_at: new Date().toISOString(),
+        status: 'pending',
+    });
+    
+    if (res.ok) {
+        const link = `${window.location.origin}/contracts/sign/${res.data.id}`;
+        showAlert('ct-create-result', 'success', `Contract "${res.data.title}" created successfully!`);
+        
+        const linkBox = document.getElementById('ct-create-link');
+        linkBox.style.display = 'block';
+        document.getElementById('ct-create-link-content').innerHTML = `
+            <p><strong>Signing Link:</strong></p>
+            <a href="${link}" target="_blank" style="word-break:break-all;">${link}</a>
+            <p style="margin-top:10px;">
+                <button class="btn btn-primary btn-sm" onclick="copySigningLink('${res.data.id}')">Copy Link</button>
+            </p>
+        `;
+        
+        document.querySelector('#panel-contracts form').reset();
+        contractList();
+    } else {
+        showAlert('ct-create-result', 'error', 'Failed to create contract: ' + (res.data || res.error));
+    }
+}
+
+async function contractGet() {
+    const id = document.getElementById('ct-get-id').value.trim();
+    if (!id) {
+        showAlert('ct-get-result', 'error', 'Please enter a contract ID');
+        return;
+    }
+    
+    const res = await api('GET', `/admin/contracts/${id}`);
+    const detailEl = document.getElementById('ct-get-detail');
+    
+    if (res.ok && res.data) {
+        const customerName = customersCache.find(c => c.id === res.data.customer_id)?.name || res.data.customer_id;
+        showAlert('ct-get-result', 'success', 'Contract found!');
+        
+        detailEl.innerHTML = renderDetailCard(res.data, [
+            { key: 'id', label: 'Contract ID', format: v => `<code>${v.substring(0, 16)}...</code>` },
+            { key: 'title', label: 'Title' },
+            { key: 'contract_type', label: 'Type' },
+            { key: 'customer_id', label: 'Customer', format: () => customerName },
+            { key: 'status', label: 'Status', format: v => getStatusBadge(v) },
+            { key: 'created_at', label: 'Created', format: v => formatDate(v) },
+            { key: 'expires_at', label: 'Expires', format: v => v ? formatDate(v) : 'Never' }
+        ]);
+        detailEl.style.display = 'block';
+    } else {
+        showAlert('ct-get-result', 'error', 'Contract not found');
+        detailEl.style.display = 'none';
+    }
+}
+
+async function contractDelete() {
+    const id = document.getElementById('ct-get-id').value.trim();
+    if (!id) {
+        showAlert('ct-get-result', 'error', 'Please enter a contract ID to delete');
+        return;
+    }
+    if (!confirm('Are you sure you want to delete this contract?')) return;
+    
+    const res = await api('DELETE', `/admin/contracts/${id}`);
+    if (res.ok) {
+        showAlert('ct-get-result', 'success', 'Contract deleted successfully');
+        document.getElementById('ct-get-detail').style.display = 'none';
+        contractList();
+    } else {
+        showAlert('ct-get-result', 'error', 'Failed to delete contract');
+    }
+}
+
+async function contractUpdate() {
+    const id = document.getElementById('ct-upd-id').value.trim();
+    if (!id) {
+        showAlert('ct-upd-result', 'error', 'No contract selected. Search for a contract first.');
+        return;
+    }
+    
+    const expiresAt = document.getElementById('ct-upd-expires').value;
+    const res = await api('PUT', `/admin/contracts/${id}`, {
+        customer_id: document.getElementById('ct-upd-customer').value,
+        contract_type: document.getElementById('ct-upd-type').value.trim(),
+        title: document.getElementById('ct-upd-title').value.trim(),
+        content: document.getElementById('ct-upd-content').value.trim(),
+        status: document.getElementById('ct-upd-status').value,
+        expires_at: expiresAt ? expiresAt + ':00Z' : null,
+        created_at: new Date().toISOString(),
+    });
+    
+    if (res.ok) {
+        showAlert('ct-upd-result', 'success', `Contract "${res.data.title}" updated successfully!`);
+        contractList();
+    } else {
+        showAlert('ct-upd-result', 'error', 'Failed to update contract: ' + (res.data || res.error));
+    }
+}
+
+// Auto-load contracts when panel is shown
+contractList();
+</script>

@@ -1,0 +1,31 @@
+[package]
+name = "InvoicesContracts"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8.8"
+tokio = { version = "1.51.0", features = ["full"] }
+askama = "0.15.6"
+askama_web = { version = "0.15.2", features = ["axum-0.8"] }
+serde = { version = "1.0", features = ["derive"] }
+diesel = { version = "2.2", features = ["sqlite", "returning_clauses_for_sqlite_3_35"] }
+diesel-async = { version = "0.5", features = ["bb8", "sync-connection-wrapper"] }
+libsqlite3-sys = { version = "0.30", features = ["bundled"] }
+jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
+tower-cookies = "0.11"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors"] }
+bcrypt = "0.16"
+chrono = { version = "0.4", features = ["serde"] }
+serde_json = "1.0"
+sha2 = "0.10"
+hex = "0.4"
+rand = "0.8.6"
+uuid = { version = "1", features = ["v4"] }
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+base64 = "0.22"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+rust_decimal = { version = "1.36", features = ["serde-float", "diesel"] }
+thiserror = "2.0"

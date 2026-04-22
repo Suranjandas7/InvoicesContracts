@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Signature Verification - {{ contract_title }}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .proof-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #333;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .verification-status {
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .verification-status.valid {
+            background: #d4edda;
+            border: 2px solid #28a745;
+        }
+        
+        .verification-status.invalid {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+        }
+        
+        .verification-status h2 {
+            margin-bottom: 10px;
+        }
+        
+        .verification-status.valid h2 {
+            color: #28a745;
+        }
+        
+        .verification-status.invalid h2 {
+            color: #dc3545;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section h3 {
+            color: #555;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .info-grid .label {
+            font-weight: bold;
+            color: #666;
+        }
+        
+        .info-grid .value {
+            color: #333;
+            word-break: break-all;
+        }
+        
+        .contract-content {
+            background: #fafafa;
+            padding: 20px;
+            border-left: 4px solid #007bff;
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .verification-code-display {
+            background: #f8f9fa;
+            border: 2px solid #28a745;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .verification-code-display .code {
+            font-size: 2rem;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            color: #28a745;
+            letter-spacing: 3px;
+        }
+        
+        .cryptographic-details {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+        
+        .cryptographic-details .detail {
+            margin-bottom: 12px;
+            word-break: break-all;
+        }
+        
+        .cryptographic-details .detail-label {
+            font-weight: bold;
+            color: #555;
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .cryptographic-details .detail-value {
+            color: #333;
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .actions {
+            margin-top: 30px;
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0 10px;
+        }
+        
+        .btn-print {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-print:hover {
+            background: #0056b3;
+        }
+        
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .proof-container {
+                box-shadow: none;
+                max-width: 100%;
+            }
+            
+            .actions {
+                display: none;
+            }
+            
+            .contract-content {
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="proof-container">
+        <div class="header">
+            <h1>Contract Verification</h1>
+            <div class="subtitle">Using Digital Signature</div>
+        </div>
+        
+        <div class="verification-status {% if content_modified %}invalid{% else %}valid{% endif %}">
+            {% if is_valid %}
+                <p>Your signature is valid.</p>
+            {% endif %}
+            {% if content_modified %}
+                <p>Warning: The contract's content cannot be verified with the key provided.</p>
+            {% else %}
+                <h2>✓ Signature Valid</h2>
+                <p>This signature has been cryptographically verified and is authentic.</p>
+            {% endif %}
+        </div>
+        
+        <div class="section">
+            <h3>Contract Information</h3>
+            <div class="info-grid">
+                <div class="label">Title:</div>
+                <div class="value">{{ contract_title }}</div>
+                
+                <div class="label">Contract Type:</div>
+                <div class="value">{{ contract_type }}</div>
+                
+                <div class="label">Contract ID:</div>
+                <div class="value">{{ contract_id }}</div>
+                
+                <div class="label">Customer ID:</div>
+                <div class="value">{{ contract_customer_id }}</div>
+                
+                <div class="label">Status:</div>
+                <div class="value">{{ contract_status }}</div>
+                
+                <div class="label">Last Updated:</div>
+                <div class="value">{{ contract_created_at }}</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>Signature Information</h3>
+            
+            <div class="verification-code-display">
+                <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">Verification Code</div>
+                <div class="code">{{ verification_code }}</div>
+            </div>
+            
+            <div class="info-grid">
+                <div class="label">Signed At:</div>
+                <div class="value">{{ signed_at }}</div>
+                
+                {% if signer_name != "" %}
+                <div class="label">Signer Name:</div>
+                <div class="value">{{ signer_name }}</div>
+                {% endif %}
+                
+                {% if client_ip != "" %}
+                <div class="label">Client IP:</div>
+                <div class="value">{{ client_ip }}</div>
+                {% endif %}
+                
+                {% if user_agent != "" %}
+                <div class="label">User Agent:</div>
+                <div class="value">{{ user_agent }}</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if content_modified %}
+        <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+            <h3 style="color: #856404; margin-bottom: 10px;">⚠️ Content Modified Since Signing</h3>
+            <p style="color: #856404; margin: 0;">
+                <strong>Warning:</strong> The contract content shown below has been modified since it was originally signed on {{ signed_at }}. 
+                The signature is cryptographically tied to the original content, not the version shown here. 
+                The signature will show as invalid because the content has changed.
+            </p>
+        </div>
+        {% endif %}
+        
+        <div class="section">
+            <h3>Contract Content</h3>
+            <div class="contract-content">{{ contract_content }}</div>
+        </div>
+        
+        <div class="section">
+            <h3>Cryptographic Details</h3>
+            <div class="cryptographic-details">
+                <div class="detail">
+                    <span class="detail-label">Stored Content Hash (SHA-256) - From Signing Time:</span>
+                    <div class="detail-value">{{ content_hash }}</div>
+                </div>
+                
+                {% if content_modified %}
+                <div class="detail" style="background: #fff3cd; padding: 10px; border-radius: 4px; border-left: 4px solid #ffc107;">
+                    <span class="detail-label" style="color: #856404;">Current Content Hash (SHA-256) - MISMATCH! ⚠️</span>
+                    <div class="detail-value" style="font-weight: bold; color: #856404;">{{ current_content_hash }}</div>
+                </div>
+                {% endif %}
+                
+                <div class="detail">
+                    <span class="detail-label">Public Key (Ed25519):</span>
+                    <div class="detail-value">{{ public_key }}</div>
+                </div>
+                
+                <div class="detail">
+                    <span class="detail-label">Signature (Ed25519):</span>
+                    <div class="detail-value">{{ signature_hash }}</div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 15px; padding: 12px; background: #e7f3ff; border-left: 4px solid #007bff; font-size: 0.9rem;">
+                <strong>About the Signature:</strong> This contract has been digitally signed using Ed25519 elliptic curve cryptography. 
+                The signature proves that the contract content has not been altered since signing and that it was signed by the holder 
+                of the private key corresponding to the public key shown above. The verification code can be used to look up and verify 
+                this signature at any time.
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button class="btn btn-print" onclick="window.print()">Print / Save as PDF</button>
+        </div>
+    </div>
+</body>
+</html>

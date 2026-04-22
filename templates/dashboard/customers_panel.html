@@ -1,0 +1,105 @@
+{# Customers CRUD Panel #}
+<div id="panel-customers" class="panel active">
+    <div class="grid">
+        <div class="card">
+            <h2>Create Customer</h2>
+            <form onsubmit="event.preventDefault(); customerCreate();">
+                <div class="form-group">
+                    <label>Customer Name *</label>
+                    <input id="c-name" placeholder="e.g., Acme Corporation" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Address</label>
+                        <input id="c-address" placeholder="123 Business St">
+                    </div>
+                    <div class="form-group">
+                        <label>Currency</label>
+                        <select id="c-currency">
+                            <option value="">-- Select Currency --</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="INR">INR (₹)</option>
+                            <option value="AUD">AUD (A$)</option>
+                            <option value="CAD">CAD (C$)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="c-active">
+                        <option value="true" selected>Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Customer</button>
+            </form>
+            <div id="c-create-result" class="alert"></div>
+        </div>
+
+        <div class="card">
+            <h2>Find Customer</h2>
+            <form onsubmit="event.preventDefault(); customerGet();">
+                <div class="form-group">
+                    <label>Customer ID</label>
+                    <input id="c-get-id" placeholder="Enter customer UUID">
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button type="submit" class="btn btn-primary">Search</button>
+                    <button type="button" class="btn btn-danger" onclick="customerDelete()">Delete</button>
+                </div>
+            </form>
+            <div id="c-get-result" class="alert"></div>
+            <div id="c-get-detail" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Edit Customer</h2>
+        <form onsubmit="event.preventDefault(); customerUpdate();">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Customer ID *</label>
+                    <input id="c-upd-id" placeholder="Customer UUID" readonly style="background:#e9ecef;">
+                </div>
+                <div class="form-group">
+                    <label>Customer Name *</label>
+                    <input id="c-upd-name" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Address</label>
+                    <input id="c-upd-address">
+                </div>
+                <div class="form-group">
+                    <label>Currency</label>
+                    <select id="c-upd-currency">
+                        <option value="">-- Select Currency --</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                        <option value="INR">INR (₹)</option>
+                        <option value="AUD">AUD (A$)</option>
+                        <option value="CAD">CAD (C$)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select id="c-upd-active">
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success">Update Customer</button>
+        </form>
+        <div id="c-upd-result" class="alert"></div>
+    </div>
+
+    <div class="card">
+        <h2>All Customers</h2>
+        <div id="c-table"><p class="empty-msg">Loading customers...</p></div>
+    </div>
+</div>

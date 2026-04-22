@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile - PixlW Invoices</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+        .navbar {
+            background: #333;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .navbar-brand {
+            color: white;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+        .navbar-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .help-text {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 4px;
+        }
+        .section-divider {
+            border-top: 1px solid #eee;
+            margin: 24px 0;
+            padding-top: 24px;
+        }
+        .section-title {
+            font-size: 1.1rem;
+            color: #444;
+            margin-bottom: 16px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            margin-left: 10px;
+        }
+        .message {
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+        .message.success {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            display: block;
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .password-hint {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <div class="navbar-brand">PixlW Invoices Dashboard</div>
+    <div class="navbar-links">
+        <a href="/profile">Edit Profile</a>
+        <a href="/logout">Logout</a>
+    </div>
+</div>
+
+<div class="container">
+    <div class="card">
+        <h1>Edit Profile</h1>
+        <div id="message"></div>
+        
+        <form id="profileForm">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="address">Address</label>
+                <textarea id="address" name="address" required></textarea>
+                <div class="help-text">Use &lt;sp&gt; to separate lines (e.g., "15 Test Road &lt;sp&gt; Test City &lt;sp&gt; Country")</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="tax_id">Tax ID</label>
+                <input type="text" id="tax_id" name="tax_id" required>
+            </div>
+            
+            <div class="section-divider">
+                <div class="section-title">Change Password (Optional)</div>
+                <div class="password-hint">
+                    Leave these fields empty if you don't want to change your password.
+                    To change your password, enter your current password and a new password.
+                </div>
+                
+                <div class="form-group">
+                    <label for="current_password">Current Password</label>
+                    <input type="password" id="current_password" name="current_password">
+                </div>
+                
+                <div class="form-group">
+                    <label for="new_password">New Password</label>
+                    <input type="password" id="new_password" name="new_password" minlength="8">
+                    <div class="help-text">Minimum 8 characters</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password">Confirm New Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password">
+                </div>
+            </div>
+            
+            <div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a href="/dashboard" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const messageDiv = document.getElementById('message');
+    
+    // Load current user profile
+    async function loadProfile() {
+        try {
+            const response = await fetch('/api/user/profile', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('name').value = data.name;
+                document.getElementById('email').value = data.email;
+                document.getElementById('address').value = data.address;
+                document.getElementById('tax_id').value = data.tax_id;
+            } else {
+                showMessage('Failed to load profile', 'error');
+            }
+        } catch (error) {
+            showMessage('Network error: ' + error.message, 'error');
+        }
+    }
+    
+    function showMessage(text, type) {
+        messageDiv.textContent = text;
+        messageDiv.className = 'message ' + type;
+    }
+    
+    // Handle form submission
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const currentPassword = document.getElementById('current_password').value;
+        const newPassword = document.getElementById('new_password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        
+        // Validate passwords if changing
+        if (newPassword || confirmPassword || currentPassword) {
+            if (!currentPassword) {
+                showMessage('Please enter your current password to change it', 'error');
+                return;
+            }
+            if (newPassword.length < 8) {
+                showMessage('New password must be at least 8 characters', 'error');
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                showMessage('New password and confirmation do not match', 'error');
+                return;
+            }
+        }
+        
+        const payload = {
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            address: document.getElementById('address').value,
+            tax_id: document.getElementById('tax_id').value,
+        };
+        
+        // Only include password fields if changing password
+        if (newPassword) {
+            payload.current_password = currentPassword;
+            payload.new_password = newPassword;
+        }
+        
+        try {
+            const response = await fetch('/api/user/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                showMessage(data.message, 'success');
+                // Clear password fields after successful update
+                document.getElementById('current_password').value = '';
+                document.getElementById('new_password').value = '';
+                document.getElementById('confirm_password').value = '';
+            } else {
+                showMessage(data.message || 'Failed to update profile', 'error');
+            }
+        } catch (error) {
+            showMessage('Network error: ' + error.message, 'error');
+        }
+    });
+    
+    // Load profile when page loads
+    loadProfile();
+</script>
+
+</body>
+</html>

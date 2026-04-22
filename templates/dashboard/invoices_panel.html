@@ -1,0 +1,131 @@
+{# Invoices CRUD Panel #}
+<div id="panel-invoices" class="panel">
+    <div class="grid">
+        <div class="card">
+            <h2>Create Invoice</h2>
+            <form onsubmit="event.preventDefault(); invoiceCreate();">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Invoice Number *</label>
+                        <input id="i-serial" type="number" placeholder="e.g., 1001" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Customer *</label>
+                        <select id="i-customer" required>
+                            <option value="">-- Select Customer --</option>
+                        </select>
+                        <div class="help-text">Select from existing customers</div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input id="i-due" type="date">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="i-status">
+                            <option value="pending" selected>Pending</option>
+                            <option value="sent">Sent</option>
+                            <option value="paid">Paid</option>
+                            <option value="overdue">Overdue</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Payment Made</label>
+                    <input id="i-payment" type="number" step="0.01" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>Line Items (Format: Description: Amount, one per line)</label>
+                    <textarea id="i-line-charges" placeholder="15 hours x $100: 1500&#10;Materials: 230&#10;Consulting fee: 500"></textarea>
+                    <div class="help-text">Enter one item per line. Format: "Description: Amount"</div>
+                </div>
+                <div class="form-group">
+                    <label>Adjustments - Taxes/Discounts (Format: Name: Percentage)</label>
+                    <textarea id="i-after-line-items" placeholder="GST Tax: 0.215&#10;Discount: -0.05"></textarea>
+                    <div class="help-text">Enter as decimals (e.g., 0.215 = 21.5%, -0.05 = -5%)</div>
+                </div>
+                <div class="form-group">
+                    <label>Memo / Notes</label>
+                    <textarea id="i-memo" placeholder="Additional notes about this invoice..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Invoice</button>
+            </form>
+            <div id="i-create-result" class="alert"></div>
+        </div>
+
+        <div class="card">
+            <h2>Find Invoice</h2>
+            <form onsubmit="event.preventDefault(); invoiceGet();">
+                <div class="form-group">
+                    <label>Invoice ID</label>
+                    <input id="i-get-id" placeholder="Enter invoice UUID">
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button type="submit" class="btn btn-primary">Search</button>
+                    <button type="button" class="btn btn-danger" onclick="invoiceDelete()">Delete</button>
+                </div>
+            </form>
+            <div id="i-get-result" class="alert"></div>
+            <div id="i-get-detail" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Edit Invoice</h2>
+        <form onsubmit="event.preventDefault(); invoiceUpdate();">
+            <input type="hidden" id="i-upd-id">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Invoice Number *</label>
+                    <input id="i-upd-serial" type="number" required>
+                </div>
+                <div class="form-group">
+                    <label>Customer *</label>
+                    <select id="i-upd-customer" required>
+                        <option value="">-- Select Customer --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Due Date</label>
+                    <input id="i-upd-due" type="date">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="i-upd-status">
+                        <option value="pending">Pending</option>
+                        <option value="sent">Sent</option>
+                        <option value="paid">Paid</option>
+                        <option value="overdue">Overdue</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Payment Made</label>
+                <input id="i-upd-payment" type="number" step="0.01">
+            </div>
+            <div class="form-group">
+                <label>Line Items</label>
+                <textarea id="i-upd-line-charges"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Adjustments</label>
+                <textarea id="i-upd-after-line-items"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Memo</label>
+                <textarea id="i-upd-memo"></textarea>
+            </div>
+            <button type="submit" class="btn btn-success">Update Invoice</button>
+        </form>
+        <div id="i-upd-result" class="alert"></div>
+    </div>
+
+    <div class="card">
+        <h2>All Invoices</h2>
+        <div id="i-table"><p class="empty-msg">Loading invoices...</p></div>
+    </div>
+</div>

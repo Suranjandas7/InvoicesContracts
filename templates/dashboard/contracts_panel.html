@@ -1,0 +1,105 @@
+{# Contracts CRUD Panel #}
+<div id="panel-contracts" class="panel">
+    <div class="grid">
+        <div class="card">
+            <h2>Create Contract</h2>
+            <form onsubmit="event.preventDefault(); contractCreate();">
+                <div class="form-group">
+                    <label>Customer *</label>
+                    <select id="ct-customer" required>
+                        <option value="">-- Select Customer --</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Contract Type *</label>
+                        <input id="ct-type" placeholder="e.g., Service Agreement" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Title *</label>
+                        <input id="ct-title" placeholder="e.g., Web Development Services" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Contract Content *</label>
+                    <textarea id="ct-content" style="min-height: 200px;" placeholder="Enter full contract text here..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Expires At (optional)</label>
+                    <input id="ct-expires" type="datetime-local">
+                    <div class="help-text">Leave empty for contracts that don't expire</div>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Contract</button>
+            </form>
+            <div id="ct-create-result" class="alert"></div>
+            <div id="ct-create-link" style="display:none; margin-top:16px; padding:16px; background:#d1ecf1; border-radius:8px;">
+                <strong>Contract Created!</strong><br>
+                <div id="ct-create-link-content"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Find Contract</h2>
+            <form onsubmit="event.preventDefault(); contractGet();">
+                <div class="form-group">
+                    <label>Contract ID</label>
+                    <input id="ct-get-id" placeholder="Enter contract UUID">
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button type="submit" class="btn btn-primary">Search</button>
+                    <button type="button" class="btn btn-danger" onclick="contractDelete()">Delete</button>
+                </div>
+            </form>
+            <div id="ct-get-result" class="alert"></div>
+            <div id="ct-get-detail" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Edit Contract</h2>
+        <form onsubmit="event.preventDefault(); contractUpdate();">
+            <input type="hidden" id="ct-upd-id">
+            <div class="form-group">
+                <label>Customer *</label>
+                <select id="ct-upd-customer" required>
+                    <option value="">-- Select Customer --</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Contract Type *</label>
+                    <input id="ct-upd-type" required>
+                </div>
+                <div class="form-group">
+                    <label>Title *</label>
+                    <input id="ct-upd-title" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Contract Content *</label>
+                <textarea id="ct-upd-content" style="min-height: 200px;" required></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="ct-upd-status">
+                        <option value="pending">Pending</option>
+                        <option value="signed">Signed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Expires At</label>
+                    <input id="ct-upd-expires" type="datetime-local">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-success">Update Contract</button>
+        </form>
+        <div id="ct-upd-result" class="alert"></div>
+    </div>
+
+    <div class="card">
+        <h2>All Contracts</h2>
+        <div id="ct-table"><p class="empty-msg">Loading contracts...</p></div>
+    </div>
+</div>

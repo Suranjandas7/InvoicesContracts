@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice #{{ invoice.serial_no }}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .invoice-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        /* Company Header */
+        .company-header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .company-name {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .company-details {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        .company-details div {
+            margin-bottom: 2px;
+        }
+        
+        /* Invoice Header */
+        header {
+            border-bottom: 3px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            color: #333;
+        }
+        
+        .invoice-meta {
+            text-align: right;
+            font-size: 0.95rem;
+        }
+        
+        .invoice-meta div {
+            margin-bottom: 4px;
+        }
+        
+        .invoice-number {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .bill-to {
+            margin-bottom: 30px;
+        }
+        
+        .bill-to h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+        
+        .bill-to div {
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+        
+        table.line-items {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        
+        table.line-items th {
+            background: #f5f5f5;
+            padding: 12px;
+            text-align: left;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        table.line-items th:last-child,
+        table.line-items td.amount {
+            text-align: right;
+        }
+        
+        table.line-items tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        table.line-items tfoot td {
+            padding: 10px 12px;
+            border-top: 1px solid #ddd;
+        }
+        
+        .subtotal-row {
+            font-weight: 600;
+            background: #f9f9f9;
+        }
+        
+        .after-item-row td:first-child {
+            padding-left: 30px;
+            font-size: 0.95rem;
+        }
+        
+        .percentage-label {
+            color: #666;
+            font-size: 0.85rem;
+        }
+        
+        .discount {
+            color: #28a745;
+        }
+        
+        .charge {
+            color: #333;
+        }
+        
+        .total-row {
+            background: #333;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .total-row td {
+            padding: 14px 12px !important;
+            border: none !important;
+        }
+        
+        .payment-row {
+            background: #f0f8ff;
+        }
+        
+        .balance-row {
+            background: #fff3cd;
+            font-weight: bold;
+        }
+        
+        .memo {
+            margin-bottom: 20px;
+            margin-top: 30px;
+        }
+        
+        .memo-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .memo-text {
+            color: #333;
+            white-space: pre-wrap;
+        }
+        
+        .btn-back {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-back:hover {
+            background: #0056b3;
+        }
+        
+        .no-print {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .invoice-container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+            }
+            
+            .no-print {
+                display: none;
+            }
+            
+            .btn-back {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <!-- Company/User Header -->
+        <div class="company-header">
+            <div class="company-name">{{ user.name }}</div>
+            <div class="company-details">
+                {% for line in user_address_lines %}
+                <div>{{ line }}</div>
+                {% endfor %}
+                <div>Email: {{ user.email }}</div>
+                <div>Tax ID: {{ user.tax_id }}</div>
+            </div>
+        </div>
+
+        <!-- Invoice Header -->
+        <header>
+            <div>
+                <h1>INVOICE</h1>
+            </div>
+            <div class="invoice-meta">
+                <div class="invoice-number">#{{ invoice.serial_no }}</div>
+                <div><strong>Status:</strong> {{ invoice.status.as_deref().unwrap_or("Pending") }}</div>
+                {% if let Some(due_date) = &invoice.due_date %}
+                <div><strong>Due Date:</strong> {{ due_date }}</div>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- Bill To -->
+        <section class="bill-to">
+            <h3>Bill To</h3>
+            <div><strong>{{ customer.name }}</strong></div>
+            {% if !customer_address_lines.is_empty() %}
+                {% for line in customer_address_lines %}
+                <div>{{ line }}</div>
+                {% endfor %}
+            {% endif %}
+            {% if let Some(currency) = &customer.currency %}
+            <div>Currency: {{ currency }}</div>
+            {% endif %}
+        </section>
+
+        <!-- Line Items Table -->
+        <table class="line-items">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Amount {% if let Some(currency) = &customer.currency %}({{ currency }}){% endif %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if line_items.is_empty() %}
+                <tr>
+                    <td colspan="2" style="text-align: center; color: #888;">No line items</td>
+                </tr>
+                {% else %}
+                    {% for item in line_items %}
+                    <tr>
+                        <td>{{ item.description }}</td>
+                        <td class="amount">{{ item.amount | fmt("{:.2}") }}</td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+            <tfoot>
+                <!-- Subtotal -->
+                <tr class="subtotal-row">
+                    <td><strong>Subtotal</strong></td>
+                    <td class="amount"><strong>{{ subtotal | fmt("{:.2}") }}</strong></td>
+                </tr>
+                
+                <!-- After-line items (taxes, fees, discounts as percentages) -->
+                {% for item in after_items %}
+                <tr class="after-item-row {% if item.is_discount %}discount{% else %}charge{% endif %}">
+                    <td>
+                        {{ item.name }}
+                        <span class="percentage-label">
+                            ({{ item.percentage_display }})
+                        </span>
+                    </td>
+                    <td class="amount">{{ item.calculated_amount | fmt("{:.2}") }}</td>
+                </tr>
+                {% endfor %}
+                
+                <!-- Total (calculated from TEXT-stored amount for Decimal precision) -->
+                <tr class="total-row">
+                    <td>TOTAL</td>
+                    <td class="amount">{{ total | fmt("{:.2}") }}</td>
+                </tr>
+                
+                <!-- Payment information -->
+                {% if show_payment_info %}
+                    {% if let Some(payment) = payment_made %}
+                    <tr class="payment-row">
+                        <td><strong>Amount Paid</strong></td>
+                        <td class="amount"><strong>-{{ payment | fmt("{:.2}") }}</strong></td>
+                    </tr>
+                    {% endif %}
+                    {% if let Some(balance) = balance_due %}
+                    <tr class="balance-row">
+                        <td><strong>Balance Due</strong></td>
+                        <td class="amount"><strong>{{ balance | fmt("{:.2}") }}</strong></td>
+                    </tr>
+                    {% endif %}
+                {% endif %}
+            </tfoot>
+        </table>
+
+        <!-- Memo (at the bottom) -->
+        {% if let Some(memo) = &invoice.memo %}
+        <section class="memo">
+            <div class="memo-label">Notes:</div>
+            <div class="memo-text">{{ memo }}</div>
+        </section>
+        {% endif %}
+
+        <!-- Back button (hidden when printing) -->
+        <div class="no-print">
+            <a href="/dashboard" class="btn-back">← Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>

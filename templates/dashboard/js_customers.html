@@ -1,0 +1,143 @@
+{# Customers CRUD JavaScript #}
+<script>
+// ── Customers ─────────────────────────────────────────────────────────────────
+async function customerList() {
+    const res = await api('GET', '/customers');
+    const el = document.getElementById('c-table');
+    if (!res.ok) {
+        el.innerHTML = '<p class="empty-msg">Failed to load customers</p>';
+        return;
+    }
+    const data = res.data;
+    if (!data || !data.length) { 
+        el.innerHTML = '<p class="empty-msg">No customers found. Create your first customer above.</p>';
+        return; 
+    }
+    
+    el.innerHTML = `<table class="data-table">
+        <thead>
+            <tr><th>ID</th><th>Name</th><th>Address</th><th>Currency</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+        ${data.map(r => `<tr>
+            <td><code>${r.id ? r.id.substring(0, 8) + '...' : '-'}</code></td>
+            <td><strong>${r.name}</strong></td>
+            <td>${r.address || '-'}</td>
+            <td>${r.currency || 'USD'}</td>
+            <td>${getStatusBadge(r.is_active === true ? 'active' : 'inactive')}</td>
+            <td class="actions-row">
+                <button class="btn btn-primary btn-sm" onclick="fillCustomerUpdate('${r.id}')">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="quickDelete('customers', '${r.id}', customerList)">Delete</button>
+            </td>
+        </tr>`).join('')}
+        </tbody>
+    </table>`;
+}
+
+async function fillCustomerUpdate(id) {
+    const res = await api('GET', `/customers/${id}`);
+    if (!res.ok || !res.data) {
+        showAlert('c-upd-result', 'error', 'Failed to load customer data');
+        return;
+    }
+    const r = res.data;
+    document.getElementById('c-upd-id').value = r.id || '';
+    document.getElementById('c-upd-name').value = r.name || '';
+    document.getElementById('c-upd-address').value = r.address || '';
+    document.getElementById('c-upd-currency').value = r.currency || '';
+    document.getElementById('c-upd-active').value = r.is_active === true ? 'true' : 'false';
+    
+    // Scroll to update form
+    document.getElementById('c-upd-id').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showAlert('c-upd-result', 'info', 'Customer loaded. Make your changes and click Update.');
+}
+
+async function customerCreate() {
+    const res = await api('POST', '/customers', {
+        name: document.getElementById('c-name').value,
+        address: optStr(document.getElementById('c-address').value),
+        currency: optStr(document.getElementById('c-currency').value) || 'USD',
+        is_active: document.getElementById('c-active').value === 'true',
+    });
+    
+    if (res.ok) {
+        showAlert('c-create-result', 'success', `Customer "${res.data.name}" created successfully!`);
+        document.querySelector('#panel-customers form').reset();
+        customerList(); // Refresh list
+        loadCustomers(); // Refresh dropdowns
+    } else {
+        showAlert('c-create-result', 'error', 'Failed to create customer: ' + (res.data || res.error));
+    }
+}
+
+async function customerGet() {
+    const id = document.getElementById('c-get-id').value.trim();
+    if (!id) {
+        showAlert('c-get-result', 'error', 'Please enter a customer ID');
+        return;
+    }
+    
+    const res = await api('GET', `/customers/${id}`);
+    const detailEl = document.getElementById('c-get-detail');
+    
+    if (res.ok && res.data) {
+        showAlert('c-get-result', 'success', 'Customer found!');
+        detailEl.innerHTML = renderDetailCard(res.data, [
+            { key: 'id', label: 'Customer ID' },
+            { key: 'name', label: 'Name' },
+            { key: 'address', label: 'Address' },
+            { key: 'currency', label: 'Currency' },
+            { key: 'is_active', label: 'Status', format: v => getStatusBadge(v === true ? 'active' : 'inactive') }
+        ]);
+        detailEl.style.display = 'block';
+    } else {
+        showAlert('c-get-result', 'error', 'Customer not found');
+        detailEl.style.display = 'none';
+    }
+}
+
+async function customerDelete() {
+    const id = document.getElementById('c-get-id').value.trim();
+    if (!id) {
+        showAlert('c-get-result', 'error', 'Please enter a customer ID to delete');
+        return;
+    }
+    if (!confirm('Are you sure you want to delete this customer?')) return;
+    
+    const res = await api('DELETE', `/customers/${id}`);
+    if (res.ok) {
+        showAlert('c-get-result', 'success', 'Customer deleted successfully');
+        document.getElementById('c-get-detail').style.display = 'none';
+        customerList();
+        loadCustomers();
+    } else {
+        showAlert('c-get-result', 'error', 'Failed to delete customer');
+    }
+}
+
+async function customerUpdate() {
+    const id = document.getElementById('c-upd-id').value.trim();
+    if (!id) {
+        showAlert('c-upd-result', 'error', 'No customer selected. Search for a customer first.');
+        return;
+    }
+    
+    const res = await api('PUT', `/customers/${id}`, {
+        name: document.getElementById('c-upd-name').value,
+        address: optStr(document.getElementById('c-upd-address').value),
+        currency: optStr(document.getElementById('c-upd-currency').value),
+        is_active: document.getElementById('c-upd-active').value === 'true',
+    });
+    
+    if (res.ok) {
+        showAlert('c-upd-result', 'success', `Customer "${res.data.name}" updated successfully!`);
+        customerList();
+        loadCustomers();
+    } else {
+        showAlert('c-upd-result', 'error', 'Failed to update customer: ' + (res.data || res.error));
+    }
+}
+
+// Auto-load customers when panel is shown
+customerList();
+</script>

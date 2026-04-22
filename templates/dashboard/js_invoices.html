@@ -1,0 +1,189 @@
+{# Invoices CRUD JavaScript #}
+<script>
+// ── Invoices ──────────────────────────────────────────────────────────────────
+async function invoiceList() {
+    const res = await api('GET', '/invoices');
+    const el = document.getElementById('i-table');
+    if (!res.ok) {
+        el.innerHTML = '<p class="empty-msg">Failed to load invoices</p>';
+        return;
+    }
+    const data = res.data;
+    if (!data || !data.length) { 
+        el.innerHTML = '<p class="empty-msg">No invoices found. Create your first invoice above.</p>';
+        return; 
+    }
+    
+    // Get customer names for display
+    const customerMap = {};
+    customersCache.forEach(c => customerMap[c.id] = c.name);
+    
+    el.innerHTML = `<table class="data-table">
+        <thead>
+            <tr>
+                <th>Number</th><th>Customer</th><th>Due Date</th><th>Status</th>
+                <th>Total</th><th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        ${data.map(r => {
+            const customerName = customerMap[r.customer_id] || 'Unknown';
+            const subtotal = calculateSubtotal(r.line_charges);
+            const total = calculateTotal(r.line_charges, r.after_line_items);
+            return `<tr>
+                <td><strong>#${r.serial_no}</strong></td>
+                <td>${customerName}</td>
+                <td>${formatDate(r.due_date)}</td>
+                <td>${getStatusBadge(r.status)}</td>
+                <td>${formatCurrency(total, r.currency)}</td>
+                <td class="actions-row">
+                    <button class="btn btn-success btn-sm" onclick="window.location.href='/view_invoice/${r.id}'">View</button>
+                    <button class="btn btn-primary btn-sm" onclick="fillInvoiceUpdate('${r.id}')">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="quickDelete('invoices', '${r.id}', invoiceList)">Delete</button>
+                </td>
+            </tr>`;
+        }).join('')}
+        </tbody>
+    </table>`;
+}
+
+function calculateSubtotal(lineCharges) {
+    if (!lineCharges) return 0;
+    const data = typeof lineCharges === 'string' ? JSON.parse(lineCharges) : lineCharges;
+    return Object.values(data).reduce((a, b) => a + (parseFloat(b) || 0), 0);
+}
+
+function calculateTotal(lineCharges, afterItems) {
+    const subtotal = calculateSubtotal(lineCharges);
+    if (!afterItems) return subtotal;
+    const data = typeof afterItems === 'string' ? JSON.parse(afterItems) : afterItems;
+    let adjustments = 0;
+    Object.values(data).forEach(pct => {
+        adjustments += subtotal * (parseFloat(pct) || 0);
+    });
+    return subtotal + adjustments;
+}
+
+async function fillInvoiceUpdate(id) {
+    const res = await api('GET', `/invoices/${id}`);
+    if (!res.ok || !res.data) {
+        showAlert('i-upd-result', 'error', 'Failed to load invoice data');
+        return;
+    }
+    const r = res.data;
+    
+    document.getElementById('i-upd-id').value = r.id || '';
+    document.getElementById('i-upd-serial').value = r.serial_no || '';
+    document.getElementById('i-upd-customer').value = r.customer_id || '';
+    document.getElementById('i-upd-due').value = r.due_date ? r.due_date.split('T')[0] : '';
+    document.getElementById('i-upd-status').value = r.status || 'pending';
+    document.getElementById('i-upd-payment').value = r.payment_made || '';
+    document.getElementById('i-upd-line-charges').value = formatLineItems(r.line_charges);
+    document.getElementById('i-upd-after-line-items').value = formatLineItems(r.after_line_items);
+    document.getElementById('i-upd-memo').value = r.memo || '';
+    
+    document.getElementById('i-upd-id').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showAlert('i-upd-result', 'info', 'Invoice loaded. Make your changes and click Update.');
+}
+
+async function invoiceCreate() {
+    const dueDate = document.getElementById('i-due').value;
+    const res = await api('POST', '/invoices', {
+        serial_no: optInt(document.getElementById('i-serial').value),
+        customer_id: document.getElementById('i-customer').value,
+        due_date: dueDate ? dueDate + 'T00:00:00Z' : null,
+        status: document.getElementById('i-status').value,
+        payment_made: optFloat(document.getElementById('i-payment').value),
+        line_charges: parseLineItems(document.getElementById('i-line-charges').value),
+        after_line_items: parseLineItems(document.getElementById('i-after-line-items').value),
+        memo: optStr(document.getElementById('i-memo').value),
+    });
+    
+    if (res.ok) {
+        showAlert('i-create-result', 'success', `Invoice #${res.data.serial_no} created successfully!`);
+        document.querySelector('#panel-invoices form').reset();
+        invoiceList();
+    } else {
+        showAlert('i-create-result', 'error', 'Failed to create invoice: ' + (res.data || res.error));
+    }
+}
+
+async function invoiceGet() {
+    const id = document.getElementById('i-get-id').value.trim();
+    if (!id) {
+        showAlert('i-get-result', 'error', 'Please enter an invoice ID');
+        return;
+    }
+    
+    const res = await api('GET', `/invoices/${id}`);
+    const detailEl = document.getElementById('i-get-detail');
+    
+    if (res.ok && res.data) {
+        const customerName = customersCache.find(c => c.id === res.data.customer_id)?.name || res.data.customer_id;
+        const total = calculateTotal(res.data.line_charges, res.data.after_line_items);
+        
+        showAlert('i-get-result', 'success', 'Invoice found!');
+        detailEl.innerHTML = renderDetailCard(res.data, [
+            { key: 'serial_no', label: 'Invoice #', format: v => `<strong>#${v}</strong>` },
+            { key: 'customer_id', label: 'Customer', format: () => customerName },
+            { key: 'due_date', label: 'Due Date', format: v => formatDate(v) },
+            { key: 'status', label: 'Status', format: v => getStatusBadge(v) },
+            { key: 'total', label: 'Total', format: () => formatCurrency(total) },
+            { key: 'payment_made', label: 'Payment Made', format: v => formatCurrency(v) },
+            { key: 'memo', label: 'Memo' }
+        ]);
+        detailEl.style.display = 'block';
+    } else {
+        showAlert('i-get-result', 'error', 'Invoice not found');
+        detailEl.style.display = 'none';
+    }
+}
+
+async function invoiceDelete() {
+    const id = document.getElementById('i-get-id').value.trim();
+    if (!id) {
+        showAlert('i-get-result', 'error', 'Please enter an invoice ID to delete');
+        return;
+    }
+    if (!confirm('Are you sure you want to delete this invoice?')) return;
+    
+    const res = await api('DELETE', `/invoices/${id}`);
+    if (res.ok) {
+        showAlert('i-get-result', 'success', 'Invoice deleted successfully');
+        document.getElementById('i-get-detail').style.display = 'none';
+        invoiceList();
+    } else {
+        showAlert('i-get-result', 'error', 'Failed to delete invoice');
+    }
+}
+
+async function invoiceUpdate() {
+    const id = document.getElementById('i-upd-id').value.trim();
+    if (!id) {
+        showAlert('i-upd-result', 'error', 'No invoice selected. Search for an invoice first.');
+        return;
+    }
+    
+    const dueDate = document.getElementById('i-upd-due').value;
+    const res = await api('PUT', `/invoices/${id}`, {
+        serial_no: optInt(document.getElementById('i-upd-serial').value),
+        customer_id: document.getElementById('i-upd-customer').value,
+        due_date: dueDate ? dueDate + 'T00:00:00Z' : null,
+        status: document.getElementById('i-upd-status').value,
+        payment_made: optFloat(document.getElementById('i-upd-payment').value),
+        line_charges: parseLineItems(document.getElementById('i-upd-line-charges').value),
+        after_line_items: parseLineItems(document.getElementById('i-upd-after-line-items').value),
+        memo: optStr(document.getElementById('i-upd-memo').value),
+    });
+    
+    if (res.ok) {
+        showAlert('i-upd-result', 'success', `Invoice #${res.data.serial_no} updated successfully!`);
+        invoiceList();
+    } else {
+        showAlert('i-upd-result', 'error', 'Failed to update invoice: ' + (res.data || res.error));
+    }
+}
+
+// Auto-load invoices when panel is shown
+invoiceList();
+</script>

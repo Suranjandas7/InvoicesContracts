@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Verification</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .gate-container {
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .verify-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: #11998e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+        
+        .contract-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+        }
+        
+        .contract-info div {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .contract-info div:last-child {
+            margin-bottom: 0;
+        }
+        
+        .contract-info strong {
+            color: #555;
+            font-size: 0.9rem;
+        }
+        
+        .contract-info .value {
+            font-family: 'Courier New', monospace;
+            color: #11998e;
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 0.95rem;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #11998e;
+        }
+        
+        input[type="text"].error {
+            border-color: #dc3545;
+        }
+        
+        .error-message {
+            color: #dc3545;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        .help-text {
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(17, 153, 142, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .info-box {
+            background: #fff9e6;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-top: 25px;
+            border-radius: 4px;
+        }
+        
+        .info-box strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #856404;
+        }
+        
+        .info-box p {
+            font-size: 0.9rem;
+            color: #555;
+            line-height: 1.5;
+        }
+        
+        @media (max-width: 600px) {
+            .gate-container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .contract-info div {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="gate-container">
+        <div class="verify-icon">✓</div>
+        
+        <h1>Contract-Signature Verification</h1>
+        <p class="subtitle">Verify Contract with Verification Code</p>
+        
+        <div class="contract-info">
+            <div>
+                <strong>Contract ID:</strong>
+                <span class="value">{{ contract_id_masked }}</span>
+            </div>
+            <div>
+                <strong>Verification Code:</strong>
+                <span class="value">{{ verification_code_masked }}</span>
+            </div>
+        </div>
+        
+        <form id="uuid-form">
+            <div class="form-group">
+                <label for="customer-uuid">Customer UUID *</label>
+                <input 
+                    type="text" 
+                    id="customer-uuid" 
+                    name="customer_uuid" 
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    autocomplete="off"
+                    required
+                >
+                <div class="error-message" id="error-msg">Invalid UUID format</div>
+                <div class="help-text">Verify your identity to view the cryptographic proof</div>
+            </div>
+            
+            <button type="submit" class="btn" id="submit-btn">
+                Verify Contract
+            </button>
+        </form>
+        
+        <div class="info-box">
+            <strong>About This Document</strong>
+            <p>This proof document contains cryptographic evidence of your digital signature, including signature hash, public key, and verification details. Enter your Customer UUID to access it.</p>
+        </div>
+    </div>
+    
+    <script>
+        const form = document.getElementById('uuid-form');
+        const input = document.getElementById('customer-uuid');
+        const errorMsg = document.getElementById('error-msg');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        // UUID v4 regex pattern (RFC4122)
+        const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        
+        // Auto-format UUID as user types
+        input.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^0-9a-fA-F-]/g, '');
+            
+            // Remove existing dashes
+            value = value.replace(/-/g, '');
+            
+            // Add dashes at correct positions
+            if (value.length > 8) {
+                value = value.slice(0, 8) + '-' + value.slice(8);
+            }
+            if (value.length > 13) {
+                value = value.slice(0, 13) + '-' + value.slice(13);
+            }
+            if (value.length > 18) {
+                value = value.slice(0, 18) + '-' + value.slice(18);
+            }
+            if (value.length > 23) {
+                value = value.slice(0, 23) + '-' + value.slice(23);
+            }
+            
+            // Limit to 36 characters (full UUID length)
+            e.target.value = value.slice(0, 36).toLowerCase();
+            
+            // Clear error when typing
+            input.classList.remove('error');
+            errorMsg.classList.remove('show');
+        });
+        
+        // Validate on submit
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const uuid = input.value.trim();
+            
+            // Validate UUID format
+            if (!uuidPattern.test(uuid)) {
+                input.classList.add('error');
+                errorMsg.classList.add('show');
+                return;
+            }
+            
+            // Redirect to same URL with customer_uuid query parameter
+            const currentUrl = window.location.pathname;
+            window.location.href = currentUrl + '?customer_uuid=' + encodeURIComponent(uuid);
+        });
+    </script>
+</body>
+</html>

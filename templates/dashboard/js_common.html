@@ -1,0 +1,173 @@
+{# Common JavaScript utilities for the dashboard #}
+<script>
+// Global customers cache for dropdowns
+let customersCache = [];
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+        const names = ['customers','invoices','contracts'];
+        t.classList.toggle('active', names[i] === name);
+    });
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+}
+
+// ── API helper ────────────────────────────────────────────────────────────────
+async function api(method, url, body) {
+    try {
+        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        if (body) opts.body = JSON.stringify(body);
+        const res = await fetch(url, opts);
+        const text = await res.text();
+        let data = null;
+        try { data = JSON.parse(text); } catch { data = text; }
+        return { ok: res.ok, status: res.status, statusText: res.statusText, data };
+    } catch (e) {
+        return { ok: false, error: e.message };
+    }
+}
+
+// ── Show alert messages ─────────────────────────────────────────────────────
+function showAlert(elementId, type, message) {
+    const el = document.getElementById(elementId);
+    el.className = 'alert alert-' + type + ' show';
+    el.textContent = message;
+    setTimeout(() => {
+        el.classList.remove('show');
+    }, 5000);
+}
+
+// ── Helper functions ──────────────────────────────────────────────────────────
+function optBool(val) { return val === 'true' ? true : val === 'false' ? false : null; }
+function optFloat(val) { const n = parseFloat(val); return isNaN(n) ? null : n; }
+function optInt(val)   { const n = parseInt(val);   return isNaN(n) ? null : n; }
+function optStr(val)   { return val.trim() || null; }
+
+// Parse line items from textarea format
+function parseLineItems(text) {
+    const result = {};
+    if (!text.trim()) return null;
+    text.split('\n').forEach(line => {
+        const colonIdx = line.indexOf(':');
+        if (colonIdx > 0) {
+            const key = line.substring(0, colonIdx).trim();
+            const val = parseFloat(line.substring(colonIdx + 1).trim());
+            if (!isNaN(val)) result[key] = val;
+        }
+    });
+    return Object.keys(result).length > 0 ? result : null;
+}
+
+// Convert JSON line items to textarea format
+function formatLineItems(json) {
+    if (!json) return '';
+    if (typeof json === 'string') {
+        try { json = JSON.parse(json); } catch { return json; }
+    }
+    return Object.entries(json).map(([k, v]) => `${k}: ${v}`).join('\n');
+}
+
+// ── Load customers for dropdowns ──────────────────────────────────────────────
+async function loadCustomers() {
+    try {
+        const res = await fetch('/customers');
+        if (res.ok) {
+            customersCache = await res.json();
+            populateAllCustomerDropdowns();
+        }
+    } catch (e) {
+        console.error('Failed to load customers:', e);
+    }
+}
+
+function populateAllCustomerDropdowns() {
+    const dropdowns = [
+        document.getElementById('i-customer'),
+        document.getElementById('i-upd-customer'),
+        document.getElementById('ct-customer'),
+        document.getElementById('ct-upd-customer')
+    ];
+    
+    dropdowns.forEach(dropdown => {
+        if (!dropdown) return;
+        const currentValue = dropdown.value;
+        // Keep first option (placeholder)
+        const placeholder = dropdown.options[0];
+        dropdown.innerHTML = '';
+        dropdown.appendChild(placeholder);
+        // Add customers
+        customersCache.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.name} (${c.id.substring(0, 8)}...)`;
+            dropdown.appendChild(opt);
+        });
+        if (currentValue) dropdown.value = currentValue;
+    });
+}
+
+// ── Shared quick-delete from table row ────────────────────────────────────────
+async function quickDelete(resource, id, refreshFn) {
+    if (!confirm('Are you sure you want to delete this item?')) return;
+    const res = await api('DELETE', `/${resource}/${id}`);
+    if (res.ok) {
+        refreshFn();
+    } else {
+        alert('Delete failed: ' + (res.statusText || res.error));
+    }
+}
+
+// ── Format currency ──────────────────────────────────────────────────────────
+function formatCurrency(amount, currency = 'USD') {
+    const symbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹', AUD: 'A$', CAD: 'C$' };
+    const symbol = symbols[currency] || '$';
+    return symbol + parseFloat(amount || 0).toFixed(2);
+}
+
+// ── Get status badge HTML ────────────────────────────────────────────────────
+function getStatusBadge(status) {
+    const classes = {
+        'active': 'badge-success',
+        'inactive': 'badge-danger',
+        'pending': 'badge-warning',
+        'sent': 'badge-info',
+        'paid': 'badge-success',
+        'overdue': 'badge-danger',
+        'signed': 'badge-success',
+        'cancelled': 'badge-danger',
+        'true': 'badge-success',
+        'false': 'badge-danger'
+    };
+    const cls = classes[status] || 'badge-info';
+    const label = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
+    return `<span class="badge ${cls}">${label}</span>`;
+}
+
+// ── Format date ──────────────────────────────────────────────────────────────
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch {
+        return dateStr;
+    }
+}
+
+// ── Render detail card ───────────────────────────────────────────────────────
+function renderDetailCard(data, fields) {
+    let html = '<div class="detail-card">';
+    fields.forEach(f => {
+        const val = f.format ? f.format(data[f.key]) : (data[f.key] || '-');
+        html += `<div class="detail-row"><span class="detail-label">${f.label}</span><span class="detail-value">${val}</span></div>`;
+    });
+    html += '</div>';
+    return html;
+}
+
+// Load customers when page loads
+window.addEventListener('DOMContentLoaded', () => {
+    loadCustomers();
+});
+</script>
