@@ -134,7 +134,6 @@ async function contractList() {
                 <td>${getContractStatusBadge(r.status, completed, required)}</td>
                 <td class="actions-row">
                     <button class="btn btn-info btn-sm" onclick="copySigningLink('${r.id}')">Copy Link</button>
-                    <button class="btn btn-primary btn-sm" onclick="fillContractUpdate('${r.id}')">Edit</button>
                     <button class="btn btn-danger btn-sm" onclick="quickDelete('admin/contracts', '${r.id}', contractList)">Delete</button>
                 </td>
             </tr>`;
@@ -162,27 +161,6 @@ async function copySigningLink(contractId) {
         const basicLink = `${window.location.origin}/contracts/sign/${contractId}`;
         prompt('Copy this signing link:', basicLink);
     }
-}
-
-async function fillContractUpdate(id) {
-    const res = await api('GET', `/admin/contracts/${id}`);
-    if (!res.ok || !res.data) {
-        showAlert('ct-upd-result', 'error', 'Failed to load contract data');
-        return;
-    }
-    const r = res.data;
-    
-    document.getElementById('ct-upd-id').value = r.id || '';
-    document.getElementById('ct-upd-customer').value = r.customer_id || '';
-    document.getElementById('ct-upd-type').value = r.contract_type || '';
-    document.getElementById('ct-upd-title').value = r.title || '';
-    document.getElementById('ct-upd-content').value = r.content || '';
-    document.getElementById('ct-upd-status').value = r.status || 'pending';
-    document.getElementById('ct-upd-expires').value = r.expires_at ? r.expires_at.substring(0, 16) : '';
-    
-    switchTab('contracts');
-    document.getElementById('ct-upd-id').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    showAlert('ct-upd-result', 'info', 'Contract loaded. Make your changes and click Update.');
 }
 
 async function contractCreate() {
@@ -281,32 +259,6 @@ async function contractDelete() {
         contractList();
     } else {
         showAlert('ct-get-result', 'error', 'Failed to delete contract');
-    }
-}
-
-async function contractUpdate() {
-    const id = document.getElementById('ct-upd-id').value.trim();
-    if (!id) {
-        showAlert('ct-upd-result', 'error', 'No contract selected. Search for a contract first.');
-        return;
-    }
-    
-    const expiresAt = document.getElementById('ct-upd-expires').value;
-    const res = await api('PUT', `/admin/contracts/${id}`, {
-        customer_id: document.getElementById('ct-upd-customer').value,
-        contract_type: document.getElementById('ct-upd-type').value.trim(),
-        title: document.getElementById('ct-upd-title').value.trim(),
-        content: document.getElementById('ct-upd-content').value.trim(),
-        status: document.getElementById('ct-upd-status').value,
-        expires_at: expiresAt ? expiresAt + ':00Z' : null,
-        created_at: new Date().toISOString(),
-    });
-    
-    if (res.ok) {
-        showAlert('ct-upd-result', 'success', `Contract "${res.data.title}" updated successfully!`);
-        contractList();
-    } else {
-        showAlert('ct-upd-result', 'error', 'Failed to update contract: ' + (res.data || res.error));
     }
 }
 

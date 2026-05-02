@@ -70,49 +70,6 @@
     </div>
 
     <div class="card">
-        <h2>Edit Contract</h2>
-        <form onsubmit="event.preventDefault(); contractUpdate();">
-            <input type="hidden" id="ct-upd-id">
-            <div class="form-group">
-                <label>Customer *</label>
-                <select id="ct-upd-customer" required>
-                    <option value="">-- Select Customer --</option>
-                </select>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Contract Type *</label>
-                    <input id="ct-upd-type" required>
-                </div>
-                <div class="form-group">
-                    <label>Title *</label>
-                    <input id="ct-upd-title" required>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Contract Content *</label>
-                <textarea id="ct-upd-content" style="min-height: 200px;" required></textarea>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Status</label>
-                    <select id="ct-upd-status">
-                        <option value="pending">Pending</option>
-                        <option value="signed">Signed</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Expires At</label>
-                    <input id="ct-upd-expires" type="datetime-local">
-                </div>
-            </div>
-            <button type="submit" class="btn btn-success">Update Contract</button>
-        </form>
-        <div id="ct-upd-result" class="alert"></div>
-    </div>
-
-    <div class="card">
         <h2>All Contracts</h2>
         <div id="ct-table"><p class="empty-msg">Loading contracts...</p></div>
     </div>
