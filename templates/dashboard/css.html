@@ -249,4 +249,64 @@ select { cursor: pointer; }
     color: #6c757d;
     margin-top: 4px;
 }
+
+/* Signature slots styling */
+.signature-slots-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.slot-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+.slot-row:hover {
+    background: #e9ecef;
+}
+.slot-inputs {
+    display: flex;
+    flex: 1;
+    gap: 8px;
+}
+.slot-inputs input[type="text"] {
+    flex: 1;
+}
+.slot-inputs input[type="number"] {
+    width: 60px;
+    text-align: center;
+}
+.slot-row .btn {
+    flex-shrink: 0;
+}
+
+/* Progress bar for contracts */
+.contract-progress {
+    margin-top: 8px;
+}
+.progress-bar-small {
+    background: #e9ecef;
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+}
+.progress-bar-small .fill {
+    background: linear-gradient(90deg, #27ae60, #2ecc71);
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+.progress-text-small {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 4px;
+}
+.badge-partial {
+    background: #fff3cd;
+    color: #856404;
+}
 </style>

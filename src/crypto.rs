@@ -117,6 +117,28 @@ pub fn hash_content(content: &str) -> String {
     hex::encode(result)
 }
 
+/// Generate final combined hash of all signatures
+/// This is created when the last signature is added
+/// Combines: contract content + all signature hashes + timestamps
+pub fn generate_final_hash(
+    contract_content: &str,
+    signature_hashes: &[String],
+    signed_at_timestamps: &[String],
+    content_hashes: &[String],
+) -> String {
+    let mut combined = String::new();
+    combined.push_str(contract_content);
+    
+    // Combine all signature data in order
+    for i in 0..signature_hashes.len() {
+        combined.push_str(&signature_hashes[i]);
+        combined.push_str(&signed_at_timestamps[i]);
+        combined.push_str(&content_hashes[i]);
+    }
+    
+    hash_content(&combined)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -189,5 +211,44 @@ mod tests {
         // Same content should produce same hash
         let hash2 = hash_content(content);
         assert_eq!(hash, hash2);
+    }
+
+    #[test]
+    fn test_generate_final_hash() {
+        let contract_content = "Test contract content";
+        let sig_hash1 = "signature_hash_1";
+        let sig_hash2 = "signature_hash_2";
+        let timestamp1 = "2026-05-01T10:00:00Z";
+        let timestamp2 = "2026-05-01T11:00:00Z";
+        let content_hash1 = "content_hash_1";
+        let content_hash2 = "content_hash_2";
+
+        let final_hash = generate_final_hash(
+            contract_content,
+            &[sig_hash1.to_string(), sig_hash2.to_string()],
+            &[timestamp1.to_string(), timestamp2.to_string()],
+            &[content_hash1.to_string(), content_hash2.to_string()],
+        );
+
+        // Should produce a valid SHA-256 hash
+        assert_eq!(final_hash.len(), 64);
+
+        // Same inputs should produce same hash
+        let final_hash2 = generate_final_hash(
+            contract_content,
+            &[sig_hash1.to_string(), sig_hash2.to_string()],
+            &[timestamp1.to_string(), timestamp2.to_string()],
+            &[content_hash1.to_string(), content_hash2.to_string()],
+        );
+        assert_eq!(final_hash, final_hash2);
+
+        // Different order should produce different hash (intentional for security)
+        let final_hash_different_order = generate_final_hash(
+            contract_content,
+            &[sig_hash2.to_string(), sig_hash1.to_string()],
+            &[timestamp2.to_string(), timestamp1.to_string()],
+            &[content_hash2.to_string(), content_hash1.to_string()],
+        );
+        assert_ne!(final_hash, final_hash_different_order);
     }
 }

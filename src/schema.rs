@@ -1,6 +1,16 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    contract_signature_slots (id) {
+        id -> Nullable<Integer>,
+        contract_id -> Text,
+        slot_name -> Nullable<Text>,
+        slot_order -> Integer,
+        is_filled -> Bool,
+    }
+}
+
+diesel::table! {
     contract_signatures (id) {
         id -> Integer,
         contract_id -> Text,
@@ -12,6 +22,7 @@ diesel::table! {
         client_ip -> Nullable<Text>,
         user_agent -> Nullable<Text>,
         content_hash -> Text,
+        slot_id -> Nullable<Integer>,
     }
 }
 
@@ -25,6 +36,9 @@ diesel::table! {
         created_at -> Text,
         expires_at -> Nullable<Text>,
         status -> Text,
+        required_signatures -> Integer,
+        completed_signatures -> Integer,
+        final_hash -> Nullable<Text>,
     }
 }
 
@@ -85,6 +99,7 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(contract_signature_slots -> contracts (contract_id));
 diesel::joinable!(contract_signatures -> contracts (contract_id));
 diesel::joinable!(contracts -> customer (customer_id));
 diesel::joinable!(invoices -> customer (customer_id));
@@ -92,6 +107,7 @@ diesel::joinable!(jwt_tokens -> user (user_id));
 diesel::joinable!(refresh_tokens -> user (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    contract_signature_slots,
     contract_signatures,
     contracts,
     customer,
