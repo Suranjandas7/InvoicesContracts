@@ -44,8 +44,30 @@
         
         .contract-meta strong {
             display: inline-block;
-            width: 120px;
+            width: 180px;
             color: #555;
+        }
+        
+        .progress-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill {
+            background: linear-gradient(90deg, #28a745, #20c997);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 8px;
+            font-weight: bold;
+            color: #495057;
         }
         
         .contract-content {
@@ -56,6 +78,85 @@
             white-space: pre-wrap;
             font-size: 0.95rem;
             line-height: 1.8;
+        }
+        
+        .slots-section {
+            margin-bottom: 30px;
+        }
+        
+        .slots-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .slot-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .slot-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .slot-item.filled {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .slot-item.available {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+        }
+        
+        .slot-item.completed {
+            background: #f8f9fa;
+            border-color: #dee2e6;
+        }
+        
+        .slot-status {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        
+        .slot-status.filled {
+            background: #28a745;
+            color: white;
+        }
+        
+        .slot-status.available {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .slot-status.completed {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .slot-info {
+            flex-grow: 1;
+        }
+        
+        .slot-name {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .slot-details {
+            font-size: 0.85rem;
+            color: #666;
         }
         
         .signing-form {
@@ -74,12 +175,17 @@
             color: #555;
         }
         
-        input[type="text"] {
+        input[type="text"], select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 1rem;
+        }
+        
+        select:disabled {
+            background: #e9ecef;
+            cursor: not-allowed;
         }
         
         .checkbox-group {
@@ -145,14 +251,20 @@
             border: 1px solid #f5c6cb;
         }
         
-        .already-signed {
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .fully-signed {
             background: #d4edda;
             padding: 20px;
             border-radius: 4px;
             border-left: 4px solid #28a745;
         }
         
-        .already-signed h2 {
+        .fully-signed h2 {
             color: #28a745;
             margin-bottom: 10px;
         }
@@ -160,6 +272,12 @@
         #result {
             display: none;
             margin-top: 20px;
+        }
+        
+        .help-text {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -174,21 +292,67 @@
             {% if contract_expires_at != "" %}
             <div><strong>Expires:</strong> {{ contract_expires_at }}</div>
             {% endif %}
+            
+            <div class="progress-bar">
+                <div class="progress-bar-fill" style="width: {{ (progress_completed as f64 / progress_required as f64 * 100.0) as i32 }}%"></div>
+            </div>
+            <div class="progress-text">{{ progress_completed }} of {{ progress_required }} signatures completed</div>
         </div>
         
         <div class="contract-content">{{ contract_content }}</div>
         
-        {% if already_signed %}
-            <div class="already-signed">
-                <h2>✓ Contract Already Signed</h2>
-                <p>This contract was signed on {{ signed_at }}.</p>
-                <p>If you have your verification code, you can verify the signature using the verification link provided to you.</p>
+        <div class="slots-section">
+            <h3>Signature Progress</h3>
+            <div class="slot-list">
+                {% for slot in slots %}
+                <div class="slot-item {% if slot.is_filled %}filled{% else %}{% if fully_signed %}completed{% else %}available{% endif %}{% endif %}">
+                    <div class="slot-status {% if slot.is_filled %}filled{% else %}{% if fully_signed %}completed{% else %}available{% endif %}{% endif %}">
+                        {% if slot.is_filled %}
+                        ✓
+                        {% else %}
+                        {% if fully_signed %}-{% else %}○{% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="slot-info">
+                        <div class="slot-name">
+                            {% if slot.slot_name.is_some() %}
+                            {{ slot.slot_name.as_ref().unwrap() }}
+                            {% else %}
+                            Signature {{ slot.slot_order + 1 }}
+                            {% endif %}
+                        </div>
+                        <div class="slot-details">
+                            {% if slot.is_filled %}
+                            {% for sig in signatures %}
+                            {% if sig.slot_id == Some(slot.id.unwrap_or(0)) %}
+                            Signed by {{ sig.signer_name.as_ref().unwrap_or(&"Unknown".to_string()) }} on {{ sig.signed_at }}
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            {% if fully_signed %}
+                            Not filled
+                            {% else %}
+                            Awaiting signature
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        {% if fully_signed %}
+            <div class="fully-signed">
+                <h2>✓ Contract Fully Signed</h2>
+                <p>This contract has been fully signed by all required parties.</p>
+                <p>All {{ progress_required }} signatures have been collected and the contract is now complete.</p>
             </div>
         {% else %}
             <div class="signing-form">
                 <h2>Sign Contract</h2>
                 <p style="margin-bottom: 20px; color: #666;">
-                    To sign this contract, please verify your identity by entering your customer UUID, 
+                    To sign this contract, please select your role/signature slot, 
                     then review and accept the terms.
                 </p>
                 
@@ -196,6 +360,25 @@
                 
                 <form id="signForm">
                     <input type="hidden" id="customer_uuid" value="{{ customer_uuid }}">
+                    
+                    <div class="form-group">
+                        <label for="slot_id">Select Your Signature Slot *</label>
+                        <select id="slot_id" name="slot_id" required>
+                            <option value="">-- Select a slot --</option>
+                            {% for slot in slots %}
+                            {% if !slot.is_filled %}
+                            <option value="{{ slot.id.unwrap_or(0) }}">
+                                {% if slot.slot_name.is_some() %}
+                                {{ slot.slot_name.as_ref().unwrap() }}
+                                {% else %}
+                                Signature {{ slot.slot_order + 1 }}
+                                {% endif %}
+                            </option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                        <p class="help-text">Select the slot that represents your role in this contract</p>
+                    </div>
                     
                     <div class="form-group">
                         <label for="signer_name">Your Name (optional)</label>
@@ -228,8 +411,14 @@
                 e.preventDefault();
                 
                 const customerUuid = document.getElementById('customer_uuid').value.trim();
+                const slotId = document.getElementById('slot_id').value;
                 const signerName = document.getElementById('signer_name').value.trim() || null;
                 const accepted = document.getElementById('accept').checked;
+                
+                if (!slotId) {
+                    showResult('Please select a signature slot', 'error');
+                    return;
+                }
                 
                 if (!accepted) {
                     showResult('Please accept the terms to continue', 'error');
@@ -247,6 +436,7 @@
                         },
                         body: JSON.stringify({
                             customer_uuid: customerUuid,
+                            slot_id: parseInt(slotId),
                             signer_name: signerName,
                             accepted: true,
                         }),
@@ -262,7 +452,11 @@
                         submitBtn.disabled = false;
                         submitBtn.textContent = 'Accept and Sign Contract';
                     } else if (response.status === 409) {
-                        showResult('This contract has already been signed.', 'error');
+                        showResult('This slot has already been signed. Please select another slot.', 'error');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Accept and Sign Contract';
+                    } else if (response.status === 410) {
+                        showResult('This contract has expired and can no longer be signed.', 'error');
                         submitBtn.disabled = false;
                         submitBtn.textContent = 'Accept and Sign Contract';
                     } else {

@@ -1,6 +1,100 @@
 {# Contracts CRUD JavaScript #}
 <script>
+// ── Signature Slots Management ───────────────────────────────────────────────
+let slotIndex = 1;
+
+function addSlotRow() {
+    const container = document.getElementById('signature-slots-container');
+    const row = document.createElement('div');
+    row.className = 'slot-row';
+    row.setAttribute('data-index', slotIndex);
+    row.innerHTML = `
+        <div class="slot-inputs">
+            <input type="text" class="slot-name" placeholder="Slot name (optional, e.g., 'Manager')">
+            <input type="number" class="slot-order" value="${slotIndex}" min="0" readonly>
+        </div>
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeSlotRow(this)">Remove</button>
+    `;
+    container.appendChild(row);
+    slotIndex++;
+    updateSlotOrder();
+}
+
+function removeSlotRow(btn) {
+    const row = btn.closest('.slot-row');
+    const container = document.getElementById('signature-slots-container');
+    
+    // Don't remove if it's the last row
+    if (container.children.length <= 1) {
+        alert('At least one signature slot is required.');
+        return;
+    }
+    
+    row.remove();
+    updateSlotOrder();
+    slotIndex--;
+}
+
+function updateSlotOrder() {
+    const rows = document.querySelectorAll('#signature-slots-container .slot-row');
+    rows.forEach((row, index) => {
+        row.setAttribute('data-index', index);
+        const orderInput = row.querySelector('.slot-order');
+        if (orderInput) {
+            orderInput.value = index;
+        }
+    });
+}
+
+function getSignatureSlots() {
+    const slots = [];
+    const rows = document.querySelectorAll('#signature-slots-container .slot-row');
+    rows.forEach((row, index) => {
+        const nameInput = row.querySelector('.slot-name');
+        const name = nameInput.value.trim();
+        slots.push({
+            name: name || null,
+            order: index
+        });
+    });
+    return slots;
+}
+
+function resetSignatureSlots() {
+    const container = document.getElementById('signature-slots-container');
+    container.innerHTML = `
+        <div class="slot-row" data-index="0">
+            <div class="slot-inputs">
+                <input type="text" class="slot-name" placeholder="Slot name (optional, e.g., 'Manager')">
+                <input type="number" class="slot-order" value="0" min="0" readonly>
+            </div>
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeSlotRow(this)" disabled>Remove</button>
+        </div>
+    `;
+    slotIndex = 1;
+}
+
 // ── Contracts ─────────────────────────────────────────────────────────────────
+function formatContractProgress(completed, required) {
+    const percent = required > 0 ? (completed / required * 100) : 0;
+    return `<div class="contract-progress">
+        <div class="progress-bar-small">
+            <div class="fill" style="width: ${percent}%"></div>
+        </div>
+        <div class="progress-text-small">${completed}/${required} signatures</div>
+    </div>`;
+}
+
+function getContractStatusBadge(status, completed, required) {
+    if (status === 'signed' && completed >= required) {
+        return '<span class="badge badge-success">✓ Fully Signed</span>';
+    } else if (completed > 0) {
+        return `<span class="badge badge-partial">${completed}/${required} Signed</span>`;
+    } else {
+        return '<span class="badge badge-warning">Pending</span>';
+    }
+}
+
 async function contractList() {
     const res = await api('GET', '/admin/contracts');
     const el = document.getElementById('ct-table');
@@ -27,12 +121,17 @@ async function contractList() {
         <tbody>
         ${data.map(r => {
             const customerName = customerMap[r.customer_id] || 'Unknown';
+            const completed = r.completed_signatures || 0;
+            const required = r.required_signatures || 1;
             return `<tr>
                 <td><code>${r.id ? r.id.substring(0, 8) + '...' : '-'}</code></td>
                 <td>${customerName}</td>
                 <td>${r.contract_type}</td>
-                <td>${r.title.substring(0, 50)}${r.title.length > 50 ? '...' : ''}</td>
-                <td>${getStatusBadge(r.status)}</td>
+                <td>
+                    ${r.title.substring(0, 50)}${r.title.length > 50 ? '...' : ''}
+                    ${formatContractProgress(completed, required)}
+                </td>
+                <td>${getContractStatusBadge(r.status, completed, required)}</td>
                 <td class="actions-row">
                     <button class="btn btn-info btn-sm" onclick="copySigningLink('${r.id}')">Copy Link</button>
                     <button class="btn btn-primary btn-sm" onclick="fillContractUpdate('${r.id}')">Edit</button>
@@ -87,6 +186,14 @@ async function fillContractUpdate(id) {
 }
 
 async function contractCreate() {
+    // Get signature slots
+    const signatureSlots = getSignatureSlots();
+    
+    if (signatureSlots.length === 0) {
+        showAlert('ct-create-result', 'error', 'At least one signature slot is required.');
+        return;
+    }
+    
     const expiresAt = document.getElementById('ct-expires').value;
     const res = await api('POST', '/admin/contracts', {
         customer_id: document.getElementById('ct-customer').value,
@@ -94,13 +201,14 @@ async function contractCreate() {
         title: document.getElementById('ct-title').value.trim(),
         content: document.getElementById('ct-content').value.trim(),
         expires_at: expiresAt ? expiresAt + ':00Z' : null,
-        created_at: new Date().toISOString(),
-        status: 'pending',
+        signature_slots: signatureSlots,
     });
     
     if (res.ok) {
         const link = `${window.location.origin}/contracts/sign/${res.data.id}`;
-        showAlert('ct-create-result', 'success', `Contract "${res.data.title}" created successfully!`);
+        const completed = res.data.completed_signatures || 0;
+        const required = res.data.required_signatures || signatureSlots.length;
+        showAlert('ct-create-result', 'success', `Contract "${res.data.title}" created successfully with ${required} signature slot(s)!`);
         
         const linkBox = document.getElementById('ct-create-link');
         linkBox.style.display = 'block';
@@ -108,11 +216,16 @@ async function contractCreate() {
             <p><strong>Signing Link:</strong></p>
             <a href="${link}" target="_blank" style="word-break:break-all;">${link}</a>
             <p style="margin-top:10px;">
+                <span class="badge badge-info">${required} signature slot(s)</span>
                 <button class="btn btn-primary btn-sm" onclick="copySigningLink('${res.data.id}')">Copy Link</button>
+            </p>
+            <p style="margin-top:8px; font-size:0.85rem; color:#6c757d;">
+                Signers can access this link and select their signature slot when signing.
             </p>
         `;
         
         document.querySelector('#panel-contracts form').reset();
+        resetSignatureSlots();
         contractList();
     } else {
         showAlert('ct-create-result', 'error', 'Failed to create contract: ' + (res.data || res.error));
@@ -131,6 +244,8 @@ async function contractGet() {
     
     if (res.ok && res.data) {
         const customerName = customersCache.find(c => c.id === res.data.customer_id)?.name || res.data.customer_id;
+        const completed = res.data.completed_signatures || 0;
+        const required = res.data.required_signatures || 1;
         showAlert('ct-get-result', 'success', 'Contract found!');
         
         detailEl.innerHTML = renderDetailCard(res.data, [
@@ -138,7 +253,9 @@ async function contractGet() {
             { key: 'title', label: 'Title' },
             { key: 'contract_type', label: 'Type' },
             { key: 'customer_id', label: 'Customer', format: () => customerName },
-            { key: 'status', label: 'Status', format: v => getStatusBadge(v) },
+            { key: 'status', label: 'Status', format: v => getContractStatusBadge(v, completed, required) },
+            { key: 'required_signatures', label: 'Required Signatures', format: () => required },
+            { key: 'completed_signatures', label: 'Completed Signatures', format: () => completed },
             { key: 'created_at', label: 'Created', format: v => formatDate(v) },
             { key: 'expires_at', label: 'Expires', format: v => v ? formatDate(v) : 'Never' }
         ]);

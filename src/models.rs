@@ -3,7 +3,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::schema::{
-    contract_signatures, contracts, customer, invoices, jwt_tokens, refresh_tokens, user,
+    contract_signature_slots, contract_signatures, contracts, customer, invoices, jwt_tokens, refresh_tokens, user,
 };
 
 // ── JSON map serde helpers ────────────────────────────────────────────────────
@@ -279,6 +279,9 @@ pub struct Contract {
     pub created_at: String,
     pub expires_at: Option<String>,
     pub status: String,
+    pub required_signatures: i32,
+    pub completed_signatures: i32,
+    pub final_hash: Option<String>,
 }
 
 #[derive(Debug, Insertable, AsChangeset, Deserialize)]
@@ -292,6 +295,9 @@ pub struct ContractPayload {
     pub created_at: String,
     pub expires_at: Option<String>,
     pub status: String,
+    pub required_signatures: i32,
+    pub completed_signatures: i32,
+    pub final_hash: Option<String>,
 }
 
 // ── Contract Signature ───────────────────────────────────────────────────────
@@ -309,6 +315,7 @@ pub struct ContractSignature {
     pub signer_name: Option<String>,
     pub client_ip: Option<String>,
     pub user_agent: Option<String>,
+    pub slot_id: Option<i32>,
 }
 
 #[derive(Debug, Insertable)]
@@ -323,6 +330,28 @@ pub struct CreateContractSignature {
     pub signer_name: Option<String>,
     pub client_ip: Option<String>,
     pub user_agent: Option<String>,
+    pub slot_id: Option<i32>,
+}
+
+// ── Contract Signature Slots ─────────────────────────────────────────────────
+
+#[derive(Debug, Queryable, Selectable, Serialize, Clone)]
+#[diesel(table_name = contract_signature_slots)]
+pub struct ContractSignatureSlot {
+    pub id: Option<i32>,
+    pub contract_id: String,
+    pub slot_name: Option<String>,
+    pub slot_order: i32,
+    pub is_filled: bool,
+}
+
+#[derive(Debug, Insertable)]
+#[diesel(table_name = contract_signature_slots)]
+pub struct CreateContractSignatureSlot {
+    pub contract_id: String,
+    pub slot_name: Option<String>,
+    pub slot_order: i32,
+    pub is_filled: bool,
 }
 
 // ── Contract API models ──────────────────────────────────────────────────────
@@ -330,8 +359,15 @@ pub struct CreateContractSignature {
 #[derive(Debug, Deserialize)]
 pub struct SignContractRequest {
     pub customer_uuid: String,
+    pub slot_id: i32,
     pub signer_name: Option<String>,
     pub accepted: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SignatureProgress {
+    pub completed: i32,
+    pub required: i32,
 }
 
 #[derive(Debug, Serialize)]
@@ -339,12 +375,48 @@ pub struct SignContractResponse {
     pub success: bool,
     pub verification_code: String,
     pub signed_at: String,
+    pub progress: SignatureProgress,
+    pub fully_signed: bool,
 }
 
 // Query parameter for customer UUID verification
 #[derive(Debug, Deserialize)]
 pub struct CustomerUuidQuery {
     pub customer_uuid: Option<String>,
+}
+
+// Signature slot definition for creating contracts
+#[derive(Debug, Deserialize, Serialize)]
+pub struct SignatureSlotDefinition {
+    pub name: Option<String>,  // Optional name like "Manager", "Legal"
+    pub order: i32,            // Display order
+}
+
+// Request for creating contract with signature slots
+#[derive(Debug, Deserialize)]
+pub struct CreateContractRequest {
+    pub customer_id: String,
+    pub contract_type: String,
+    pub title: String,
+    pub content: String,
+    pub expires_at: Option<String>,
+    pub signature_slots: Vec<SignatureSlotDefinition>,
+}
+
+// Response showing available slots for signing
+#[derive(Debug, Serialize)]
+pub struct ContractSignatureSlotsResponse {
+    pub slots: Vec<ContractSignatureSlot>,
+    pub progress: SignatureProgress,
+}
+
+// Contract view response with slots
+#[derive(Debug, Serialize)]
+pub struct ContractViewResponse {
+    pub contract: Contract,
+    pub slots: Vec<ContractSignatureSlot>,
+    pub signatures: Vec<ContractSignature>,
+    pub progress: SignatureProgress,
 }
 
 // ── First User Setup ──────────────────────────────────────────────────────────

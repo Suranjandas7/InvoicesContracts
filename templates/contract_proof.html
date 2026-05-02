@@ -52,6 +52,11 @@
             border: 2px solid #28a745;
         }
         
+        .verification-status.partial {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+        }
+        
         .verification-status.invalid {
             background: #f8d7da;
             border: 2px solid #dc3545;
@@ -63,6 +68,10 @@
         
         .verification-status.valid h2 {
             color: #28a745;
+        }
+        
+        .verification-status.partial h2 {
+            color: #856404;
         }
         
         .verification-status.invalid h2 {
@@ -108,49 +117,173 @@
             overflow-y: auto;
         }
         
-        .verification-code-display {
+        .progress-section {
             background: #f8f9fa;
-            border: 2px solid #28a745;
             border-radius: 8px;
             padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .progress-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill {
+            background: linear-gradient(90deg, #28a745, #20c997);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
             text-align: center;
-            margin: 20px 0;
-        }
-        
-        .verification-code-display .code {
-            font-size: 2rem;
+            margin-top: 8px;
             font-weight: bold;
-            font-family: 'Courier New', monospace;
-            color: #28a745;
-            letter-spacing: 3px;
+            color: #495057;
         }
         
-        .cryptographic-details {
+        .slots-section {
+            margin-top: 20px;
+        }
+        
+        .slot-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            background: white;
+        }
+        
+        .slot-item.filled {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .slot-status {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 12px;
+            flex-shrink: 0;
+            font-size: 14px;
+        }
+        
+        .slot-status.filled {
+            background: #28a745;
+            color: white;
+        }
+        
+        .slot-status.pending {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .slot-info {
+            flex-grow: 1;
+        }
+        
+        .slot-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .slot-details {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .signature-details {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-size: 0.8rem;
+        }
+        
+        .signature-details .detail {
+            margin-bottom: 5px;
+            word-break: break-all;
+        }
+        
+        .signature-details .detail-label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .verification-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        
+        .verification-badge.valid {
+            background: #28a745;
+            color: white;
+        }
+        
+        .verification-badge.invalid {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .verification-badge.tampered {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .cryptographic-section {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 4px;
             font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
+            margin-top: 15px;
         }
         
-        .cryptographic-details .detail {
-            margin-bottom: 12px;
+        .cryptographic-section .detail {
+            margin-bottom: 10px;
             word-break: break-all;
         }
         
-        .cryptographic-details .detail-label {
+        .cryptographic-section .detail-label {
             font-weight: bold;
             color: #555;
             display: block;
             margin-bottom: 4px;
         }
         
-        .cryptographic-details .detail-value {
+        .cryptographic-section .detail-value {
             color: #333;
             background: white;
             padding: 8px;
             border-radius: 4px;
             border: 1px solid #ddd;
+        }
+        
+        .final-hash-section {
+            background: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .final-hash-section h4 {
+            margin-bottom: 10px;
+            color: #0056b3;
         }
         
         .actions {
@@ -180,6 +313,16 @@
             background: #0056b3;
         }
         
+        .fully-signed-badge {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        
         /* Print styles */
         @media print {
             body {
@@ -206,18 +349,19 @@
     <div class="proof-container">
         <div class="header">
             <h1>Contract Verification</h1>
-            <div class="subtitle">Using Digital Signature</div>
+            <div class="subtitle">Multi-Signature Digital Verification</div>
         </div>
         
-        <div class="verification-status {% if content_modified %}invalid{% else %}valid{% endif %}">
-            {% if is_valid %}
-                <p>Your signature is valid.</p>
-            {% endif %}
-            {% if content_modified %}
-                <p>Warning: The contract's content cannot be verified with the key provided.</p>
+        <div class="verification-status {% if fully_signed %}valid{% else %}partial{% endif %}">
+            {% if fully_signed %}
+                <h2>✓ Contract Fully Signed</h2>
+                <p>This contract has been signed by all {{ progress_required }} required parties.</p>
+                {% if final_hash_valid %}
+                <p style="margin-top: 10px; font-size: 0.9rem;">Final combined hash verified and valid.</p>
+                {% endif %}
             {% else %}
-                <h2>✓ Signature Valid</h2>
-                <p>This signature has been cryptographically verified and is authentic.</p>
+                <h2>⚠ Contract Partially Signed</h2>
+                <p>This contract requires {{ progress_required }} signatures. Currently {{ progress_completed }} signature(s) have been collected.</p>
             {% endif %}
         </div>
         
@@ -237,89 +381,108 @@
                 <div class="value">{{ contract_customer_id }}</div>
                 
                 <div class="label">Status:</div>
-                <div class="value">{{ contract_status }}</div>
+                <div class="value">{% if fully_signed %}Fully Signed{% else %}Partially Signed ({{ progress_completed }}/{{ progress_required }}){% endif %}</div>
                 
-                <div class="label">Last Updated:</div>
+                <div class="label">Created:</div>
                 <div class="value">{{ contract_created_at }}</div>
             </div>
         </div>
         
-        <div class="section">
-            <h3>Signature Information</h3>
-            
-            <div class="verification-code-display">
-                <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">Verification Code</div>
-                <div class="code">{{ verification_code }}</div>
+        <div class="progress-section">
+            <h3 style="margin-bottom: 15px;">Signature Progress</h3>
+            <div class="progress-bar">
+                <div class="progress-bar-fill" style="width: {{ (progress_completed as f64 / progress_required as f64 * 100.0) as i32 }}%"></div>
             </div>
+            <div class="progress-text">{{ progress_completed }} of {{ progress_required }} signatures completed</div>
             
-            <div class="info-grid">
-                <div class="label">Signed At:</div>
-                <div class="value">{{ signed_at }}</div>
-                
-                {% if signer_name != "" %}
-                <div class="label">Signer Name:</div>
-                <div class="value">{{ signer_name }}</div>
-                {% endif %}
-                
-                {% if client_ip != "" %}
-                <div class="label">Client IP:</div>
-                <div class="value">{{ client_ip }}</div>
-                {% endif %}
-                
-                {% if user_agent != "" %}
-                <div class="label">User Agent:</div>
-                <div class="value">{{ user_agent }}</div>
-                {% endif %}
+            {% if fully_signed %}
+            <div style="text-align: center;">
+                <span class="fully-signed-badge">✓ All Signatures Complete</span>
             </div>
+            {% endif %}
         </div>
         
-        {% if content_modified %}
-        <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-            <h3 style="color: #856404; margin-bottom: 10px;">⚠️ Content Modified Since Signing</h3>
-            <p style="color: #856404; margin: 0;">
-                <strong>Warning:</strong> The contract content shown below has been modified since it was originally signed on {{ signed_at }}. 
-                The signature is cryptographically tied to the original content, not the version shown here. 
-                The signature will show as invalid because the content has changed.
+        <div class="section">
+            <h3>Signature Details</h3>
+            <p style="margin-bottom: 15px; color: #666; font-size: 0.9rem;">
+                Verification code being viewed: <strong>{{ verification_code }}</strong>
             </p>
+            
+            <div class="slots-section">
+                {% for vsig in verified_signatures %}
+                <div class="slot-item filled">
+                    <div class="slot-status filled">✓</div>
+                    <div class="slot-info">
+                        <div class="slot-name">
+                            {{ vsig.signature.signer_name.as_ref().unwrap_or(&"Unknown Signer".to_string()) }}
+                            {% if vsig.signature.verification_code == verification_code %}
+                            <span style="background: #007bff; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.75rem;">YOU</span>
+                            {% endif %}
+                            {% if vsig.valid %}
+                            <span class="verification-badge valid">✓ Valid</span>
+                            {% else %}
+                            <span class="verification-badge invalid">✗ Invalid</span>
+                            {% endif %}
+                            {% if vsig.tampered %}
+                            <span class="verification-badge tampered">⚠ Tampered</span>
+                            {% endif %}
+                        </div>
+                        <div class="slot-details">
+                            Signed on {{ vsig.signature.signed_at }} 
+                            • Verification Code: {{ vsig.signature.verification_code }}
+                        </div>
+                        
+                        <div class="signature-details">
+                            <div class="detail">
+                                <span class="detail-label">Public Key (Ed25519):</span>
+                                <span>{{ vsig.signature.public_key }}</span>
+                            </div>
+                            <div class="detail">
+                                <span class="detail-label">Content Hash (SHA-256):</span>
+                                <span>{{ vsig.signature.content_hash }}</span>
+                            </div>
+                            {% if vsig.tampered %}
+                            <div class="detail" style="background: #fff3cd; padding: 8px; border-radius: 4px; margin-top: 8px;">
+                                <span class="detail-label" style="color: #856404;">⚠ Warning:</span>
+                                <span style="color: #856404;">Contract content has been modified since this signature was added.</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
-        {% endif %}
         
         <div class="section">
             <h3>Contract Content</h3>
             <div class="contract-content">{{ contract_content }}</div>
         </div>
         
-        <div class="section">
-            <h3>Cryptographic Details</h3>
-            <div class="cryptographic-details">
-                <div class="detail">
-                    <span class="detail-label">Stored Content Hash (SHA-256) - From Signing Time:</span>
-                    <div class="detail-value">{{ content_hash }}</div>
-                </div>
-                
-                {% if content_modified %}
-                <div class="detail" style="background: #fff3cd; padding: 10px; border-radius: 4px; border-left: 4px solid #ffc107;">
-                    <span class="detail-label" style="color: #856404;">Current Content Hash (SHA-256) - MISMATCH! ⚠️</span>
-                    <div class="detail-value" style="font-weight: bold; color: #856404;">{{ current_content_hash }}</div>
-                </div>
-                {% endif %}
-                
-                <div class="detail">
-                    <span class="detail-label">Public Key (Ed25519):</span>
-                    <div class="detail-value">{{ public_key }}</div>
-                </div>
-                
-                <div class="detail">
-                    <span class="detail-label">Signature (Ed25519):</span>
-                    <div class="detail-value">{{ signature_hash }}</div>
-                </div>
+        {% if fully_signed && final_hash.is_some() %}
+        <div class="final-hash-section">
+            <h4>🔒 Final Combined Hash</h4>
+            <p style="margin-bottom: 10px; font-size: 0.9rem;">
+                This hash combines all signatures and contract content into a single immutable proof:
+            </p>
+            <div style="font-family: 'Courier New', monospace; font-size: 0.85rem; background: white; padding: 10px; border-radius: 4px; word-break: break-all;">
+                {{ final_hash.as_ref().unwrap() }}
             </div>
-            
-            <div style="margin-top: 15px; padding: 12px; background: #e7f3ff; border-left: 4px solid #007bff; font-size: 0.9rem;">
-                <strong>About the Signature:</strong> This contract has been digitally signed using Ed25519 elliptic curve cryptography. 
-                The signature proves that the contract content has not been altered since signing and that it was signed by the holder 
-                of the private key corresponding to the public key shown above. The verification code can be used to look up and verify 
-                this signature at any time.
+            {% if final_hash_valid %}
+            <p style="margin-top: 10px; color: #28a745; font-weight: bold;">✓ Final hash verified and valid</p>
+            {% else %}
+            <p style="margin-top: 10px; color: #dc3545; font-weight: bold;">✗ Final hash verification failed</p>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <div class="section">
+            <h3>Cryptographic Information</h3>
+            <div style="background: #e7f3ff; border-left: 4px solid #007bff; padding: 15px; margin-bottom: 15px; font-size: 0.9rem;">
+                <strong>About Multi-Signature Verification:</strong> This contract uses Ed25519 elliptic curve cryptography for each signature. 
+                Each signature is cryptographically tied to the contract content at the time of signing. The final combined hash 
+                (generated when all signatures are collected) provides a single immutable proof that all parties signed the same version 
+                of the contract. Individual tamper detection allows identifying if the contract was modified after any specific signature.
             </div>
         </div>
         

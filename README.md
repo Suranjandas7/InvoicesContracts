@@ -15,6 +15,7 @@ Features include:
 * Invoice viewing with formatted display of company and customer details.
 * Contract management with CRUD operations, status tracking, and expiration dates.
 * Digital contract signing with cryptographic signatures using ECDSA.
+* Multiple signatures and signature tracking for contracts.
 * Contract verification with tamper detection using stored content hashes.
 * Signature proof generation and download for signed contracts.
 * Public contract signing interface secured by customer UUID verification.

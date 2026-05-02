@@ -163,7 +163,7 @@ async fn main() {
 async fn handler() -> IndexTemplate {
     IndexTemplate {
         title: "Invoices&Contracts v0.1".to_string(),
-        message: "@2026".to_string(),
+        message: "Invoice&Contract v0.1".to_string(),
     }
 }
 

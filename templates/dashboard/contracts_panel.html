@@ -25,6 +25,20 @@
                     <textarea id="ct-content" style="min-height: 200px;" placeholder="Enter full contract text here..." required></textarea>
                 </div>
                 <div class="form-group">
+                    <label>Signature Slots *</label>
+                    <div id="signature-slots-container" class="signature-slots-list">
+                        <div class="slot-row" data-index="0">
+                            <div class="slot-inputs">
+                                <input type="text" class="slot-name" placeholder="Slot name (optional, e.g., 'Manager')">
+                                <input type="number" class="slot-order" value="0" min="0" readonly>
+                            </div>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="removeSlotRow(this)" disabled>Remove</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-info btn-sm" onclick="addSlotRow()" style="margin-top: 10px;">+ Add Signature Slot</button>
+                    <div class="help-text">Define who needs to sign this contract. Names are optional (e.g., "Manager", "Legal", "Client"). At least one slot is required.</div>
+                </div>
+                <div class="form-group">
                     <label>Expires At (optional)</label>
                     <input id="ct-expires" type="datetime-local">
                     <div class="help-text">Leave empty for contracts that don't expire</div>

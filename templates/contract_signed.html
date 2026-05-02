@@ -16,7 +16,7 @@
         }
         
         .success-container {
-            max-width: 600px;
+            max-width: 700px;
             margin: 50px auto;
             background: white;
             padding: 40px;
@@ -156,8 +156,100 @@
         
         .contract-details strong {
             display: inline-block;
-            width: 100px;
+            width: 150px;
             color: #666;
+        }
+        
+        .progress-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .progress-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill {
+            background: linear-gradient(90deg, #28a745, #20c997);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 8px;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .slots-list {
+            margin-top: 15px;
+        }
+        
+        .slot-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            background: white;
+            border: 1px solid #ddd;
+        }
+        
+        .slot-item.filled {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .slot-status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 12px;
+            flex-shrink: 0;
+            font-size: 12px;
+        }
+        
+        .slot-status.filled {
+            background: #28a745;
+            color: white;
+        }
+        
+        .slot-status.pending {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .slot-name {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .slot-details {
+            margin-left: auto;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .fully-signed-badge {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-top: 15px;
         }
     </style>
 </head>
@@ -179,11 +271,51 @@
             <p>This code is your proof of signature. Please save it securely. You can use it to verify the authenticity of your signature at any time.</p>
         </div>
         
+        <div class="progress-section">
+            <h3 style="margin-bottom: 15px;">Signature Progress</h3>
+            <div class="progress-bar">
+                <div class="progress-bar-fill" style="width: {{ (progress_completed as f64 / progress_required as f64 * 100.0) as i32 }}%"></div>
+            </div>
+            <div class="progress-text">{{ progress_completed }} of {{ progress_required }} signatures completed</div>
+            
+            {% if fully_signed %}
+            <div class="fully-signed-badge">✓ Fully Signed</div>
+            {% endif %}
+            
+            <div class="slots-list">
+                {% for slot in slots %}
+                <div class="slot-item {% if slot.is_filled %}filled{% endif %}">
+                    <div class="slot-status {% if slot.is_filled %}filled{% else %}pending{% endif %}">
+                        {% if slot.is_filled %}✓{% else %}○{% endif %}
+                    </div>
+                    <div class="slot-name">
+                        {% if slot.slot_name.is_some() %}
+                        {{ slot.slot_name.as_ref().unwrap() }}
+                        {% else %}
+                        Signature {{ slot.slot_order + 1 }}
+                        {% endif %}
+                    </div>
+                    <div class="slot-details">
+                        {% if slot.is_filled %}
+                        {% for sig in signatures %}
+                        {% if sig.slot_id == Some(slot.id.unwrap_or(0)) %}
+                        Signed by {{ sig.signer_name.as_ref().unwrap_or(&"Unknown".to_string()) }}
+                        {% endif %}
+                        {% endfor %}
+                        {% else %}
+                        Awaiting signature
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
         <div class="contract-details">
             <h3>Contract Details</h3>
             <div><strong>Title:</strong> {{ contract_title }}</div>
             <div><strong>Type:</strong> {{ contract_type }}</div>
-            <div><strong>Status:</strong> Signed</div>
+            <div><strong>Status:</strong> {% if fully_signed %}Fully Signed{% else %}Partially Signed{% endif %}</div>
         </div>
         
         <div class="actions">
