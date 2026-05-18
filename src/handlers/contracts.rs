@@ -192,21 +192,21 @@ pub async fn create_contract(
     };
     
     // Transaction: Insert contract + create slots
-    let result: Result<Contract, diesel::result::Error> = conn.transaction(|conn| {
-        Box::pin(async move {
+    let result: Result<Contract, diesel::result::Error> = conn
+        .transaction(async |conn| {
             // Insert contract
             diesel::insert_into(contract_dsl::contracts)
                 .values(&payload)
                 .execute(conn)
                 .await?;
-            
+
             // Fetch inserted contract
             let contract = contract_dsl::contracts
                 .filter(contract_dsl::id.eq(&contract_id))
                 .select(Contract::as_select())
                 .first(conn)
                 .await?;
-            
+
             // Create signature slots
             for slot_def in signature_slots.iter() {
                 let slot = CreateContractSignatureSlot {
@@ -215,16 +215,16 @@ pub async fn create_contract(
                     slot_order: slot_def.order,
                     is_filled: false,
                 };
-                
+
                 diesel::insert_into(slot_dsl::contract_signature_slots)
                     .values(&slot)
                     .execute(conn)
                     .await?;
             }
-            
+
             Ok(contract)
         })
-    }).await;
+        .await;
     
     let contract = result.map_err(|e| {
         tracing::error!("Database transaction error: {}", e);

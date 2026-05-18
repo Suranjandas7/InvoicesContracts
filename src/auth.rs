@@ -157,7 +157,7 @@ pub async fn is_jwt_revoked(pool: &DbPool, token: &str) -> Result<bool, AuthErro
 // Generate a cryptographically random 256-bit refresh token (hex string)
 pub fn generate_refresh_token() -> String {
     let mut bytes = [0u8; 32];
-    rand::thread_rng().fill_bytes(&mut bytes);
+    rand::rng().fill_bytes(&mut bytes);
     hex::encode(bytes)
 }
 
